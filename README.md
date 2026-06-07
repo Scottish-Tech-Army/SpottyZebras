@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Spotty Zebras
 
-## Getting Started
+A Progressive Web App (PWA) for managing events, bookings, support directories, and donations for non-governmental organisations. Built with Next.js, Supabase, and Stripe.
 
-First, run the development server:
+## Tech Stack
+
+- **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
+- **Database & Auth:** Supabase (PostgreSQL with Row Level Security)
+- **Payments:** Stripe
+- **PWA:** next-pwa
+- **Hosting:** Vercel
+
+## Prerequisites
+
+- [Node.js 18+](https://nodejs.org)
+
+## Setup
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/Scottish-Tech-Army/SpottyZebras.git
+cd spotty-zebras
+npm install
+```
+
+### 2. Configure environment variables
+
+Ask a team member for the Supabase credentials, then create a `.env.local` file in the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Do not commit this file — it is already in `.gitignore`.
+
+### 3. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). You should see Supabase marked as connected.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+├── api/health/        # Health check endpoint
+├── layout.tsx         # Root layout
+└── page.tsx           # Homepage
+lib/
+└── supabase.ts        # Supabase client
+types/
+└── index.ts           # Shared TypeScript types
+```
 
-## Learn More
+## Available Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Run production build |
+| `npm run lint` | Lint code |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Troubleshooting
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Supabase not connecting** — Check that `.env.local` exists in the project root, values are correct, and you have restarted the dev server after editing it.
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Port 3000 in use** — Run `npm run dev -- -p 3001` and open [http://localhost:3001](http://localhost:3001).
