@@ -1,26 +1,116 @@
 @import "tailwindcss";
 
+/* ─── Design tokens ────────────────────────────────────────────────────────
+   All visual decisions live here. When the designer delivers a brand kit,
+   only this block needs updating — no component code changes required.
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Brand palette ──────────────────────────────────────────────────────
+     ✅ = exact value from the brand kit
+     ✎ = derived / best-guess (confirm the four accents + sand + hovers)     */
+
+  /* Primary — Zebra green (confirmations, RSVPs, brand-active, zebra outline) */
+  --color-primary:          #3F9E55;   /* ✅ */
+  --color-primary-hover:    #348449;   /* ✎ darker green for hover */
+
+  /* Secondary — Sky blue (tagline display copy, links, "going" badges) */
+  --color-secondary:        #2E7DC9;   /* ✅ */
+  --color-secondary-hover:  #256BAF;   /* ✎ darker blue for hover */
+
+  /* Spot accents — event status, age/category tags, hero card tints.
+     Rule: never two strong accents on one screen. (hexes are ✎ guesses) */
+  --color-accent-yellow:    #F5C542;   /* ✎ sunshine yellow */
+  --color-accent-tomato:    #E24E3B;   /* ✎ tomato */
+  --color-accent-tangerine: #F08A3C;   /* ✎ tangerine */
+  --color-accent-grape:     #7A4EA8;   /* ✎ grape */
+
+  /* Neutrals — clean near-whites with a hair of warmth */
+  --color-cream:            #F8F8F7;   /* ✅ page background */
+  --color-paper:            #FFFFFF;   /* ✅ cards */
+  --color-sand:             #EFEDE8;   /* ✎ sunken rows */
+
+  /* Ink — deep navy, never pure black. Text + "marker outline" on buttons/cards */
+  --color-ink:              #1B2A3A;   /* ✅ */
+
+  /* ── Semantic aliases (map the palette onto UI roles) ──────────────────── */
+  --color-surface:          var(--color-paper);       /* card background */
+  --color-border:           #E4E2DD;   /* ✎ warm card border */
+  --color-border-input:     #D6D3CD;   /* ✎ warm input border */
+  --color-text:             var(--color-ink);
+  --color-text-secondary:   #3C4A5A;   /* ✎ lighter ink */
+  --color-text-muted:       #6A7684;   /* ✎ muted ink */
+  --color-error:            #dc2626;   /* ✎ kept red; swap to tomato if desired */
+  --color-focus:            var(--color-secondary);    /* sky-blue focus ring */
+
+  /* Feature: Gift Aid (green tints from primary) */
+  --color-gift-aid-bg:      #EDF6EF;   /* ✎ */
+  --color-gift-aid-border:  #C7E6CE;   /* ✎ */
+  --color-gift-aid-accent:  var(--color-primary);
+
+  /* Feature: Success icon */
+  --color-success-icon-bg:  #EDF6EF;   /* ✎ light green tint */
+
+  /* Radii */
+  --radius-sm:  0.5rem;    /* inputs, small elements */
+  --radius-md:  0.75rem;   /* buttons */
+  --radius-lg:  1rem;      /* cards */
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
+/* ─── Tailwind theme bridge ────────────────────────────────────────────── */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Expose design tokens as first-class Tailwind utilities (bg-primary, etc.) */
+  --color-primary:         #3F9E55;
+  --color-primary-hover:   #348449;
+  --color-secondary:       #2E7DC9;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ─────────────────────────────────────────────────────────────── */
+:root {
+  --background: var(--color-cream);   /* warm near-white page */
+  --foreground: var(--color-ink);     /* deep navy text */
 }
+
+/* The brand is a specific warm-light theme, so we don't auto-flip to a dark
+   scheme on device preference — that would break the cream/ink intent. */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* ── Selectable controls (token-driven fills; Tailwind v4 is unreliable with
+   bg-[var(--*)], so background fills live in CSS classes) ────────────────── */
+
+/* Segmented toggle (one-off / monthly) */
+.seg-group  { border: 1px solid var(--color-border); }
+.seg-idle   { background-color: var(--color-paper); color: var(--color-text-muted); }
+.seg-idle:hover { background-color: var(--color-sand); }
+.seg-active { background-color: var(--color-primary); color: #ffffff; }
+
+/* Amount preset chips */
+.chip        { background-color: var(--color-paper); color: var(--color-text-secondary); border-color: var(--color-border-input); }
+.chip:hover  { border-color: var(--color-primary); }
+.chip-active { background-color: var(--color-primary); color: #ffffff; border-color: var(--color-primary); }
+
+/* Gift Aid card */
+.giftaid-card  { background-color: var(--color-gift-aid-bg); border-color: var(--color-gift-aid-border); }
+.giftaid-check { accent-color: var(--color-gift-aid-accent); }
+
+/* Sunken surface — info notices, read-only rows */
+.surface-sunken { background-color: var(--color-sand); }
