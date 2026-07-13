@@ -1,100 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { Carer, CarerField, CarerErrors, SignupData } from '@/lib/signup/types'
+import { PARENT1_REQUIRED, PARENT2_REQUIRED } from '@/lib/signup/constants'
+import {
+  sanitizeCarerField, sanitizeName, sanitizePhone,
+  validateCarer, crossCarerErrors, validateEmergency,
+  isPostcode, formatPostcode, isCarerEmpty,
+} from '@/lib/signup/validation'
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-export interface Carer {
-  fullName: string
-  email: string
-  phone: string
-  line1: string
-  line2: string
-  city: string
-  postcode: string
-}
-
-export type CarerField = keyof Carer
-export type CarerErrors = Partial<Record<CarerField, string>>
+const STORAGE_KEY = 'sz_signup'
 
 const emptyCarer = (): Carer => ({
   fullName: '', email: '', phone: '', line1: '', line2: '', city: '', postcode: '',
 })
 
-// ─── Input sanitizers (block invalid characters as the user types) ───────────
-
-// Letters of ANY language (\p{L}), spaces, hyphens and apostrophes — so names
-// like "Anne-Marie", "O'Brien" and non-Latin scripts are allowed, digits and
-// symbols are not.
-const sanitizeName = (v: string) => v.replace(/[^\p{L}\s'’-]/gu, '')
-
-// National UK number only — no country code, no leading 0. The UI renders a
-// fixed "+44" prefix and we store just these digits, so every number reaches the
-// DB as "+44" + this value. Pasting a full number (0044.../44.../07...) is
-// normalised down to the national part.
-const sanitizePhone = (v: string) => {
-  let d = v.replace(/\D/g, '')
-  if (d.startsWith('00')) d = d.slice(2)   // international access code
-  if (d.startsWith('44')) d = d.slice(2)   // UK country code
-  return d.replace(/^0+/, '')              // national trunk "0"
-}
-
-// Characters that can legally appear in an email address.
-const sanitizeEmail = (v: string) => v.replace(/[^A-Za-z0-9@._%+-]/g, '')
-
-// Uppercase; letters, digits and single spaces only.
-const sanitizePostcode = (v: string) =>
-  v.toUpperCase().replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ')
-
-function sanitizeCarerField(f: CarerField, v: string): string {
-  if (f === 'fullName') return sanitizeName(v)
-  if (f === 'phone') return sanitizePhone(v)
-  if (f === 'email') return sanitizeEmail(v)
-  if (f === 'postcode') return sanitizePostcode(v)
-  return v
-}
-
-// ─── Validators ─────────────────────────────────────────────────────────────
-
-const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
-// Validates the national part only (country code lives in the fixed "+44" prefix).
-const isPhone = (v: string) => /^\d{9,11}$/.test(v)
-const norm = (v: string) => v.trim().toLowerCase()
-
-// UK postcode format (tolerant of a missing space); also matches GIR 0AA.
-const isPostcode = (v: string) =>
-  /^(GIR ?0AA|[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2})$/i.test(v.trim())
-
-// Canonical form: single space before the final three characters (the incode).
-function formatPostcode(v: string): string {
-  const s = v.toUpperCase().replace(/[^A-Z0-9]/g, '')
-  if (s.length < 5) return v.trim().toUpperCase()
-  return s.slice(0, -3) + ' ' + s.slice(-3)
-}
-
-// Required carer fields: name, email, phone, address line 1, postcode.
-// (line2 and city are optional.)
-function carerErrors(c: Carer): CarerErrors {
-  const e: CarerErrors = {}
-  if (!c.fullName.trim()) e.fullName = 'Please enter a full name.'
-  if (!c.email.trim()) e.email = 'Please enter an email.'
-  else if (!isEmail(c.email)) e.email = 'Please enter a valid email.'
-  if (!c.phone.trim()) e.phone = 'Please enter a phone number.'
-  else if (!isPhone(c.phone)) e.phone = 'Please enter a valid phone number.'
-  if (!c.line1.trim()) e.line1 = 'Please enter the first line of the address.'
-  if (!c.postcode.trim()) e.postcode = 'Please enter a postcode.'
-  else if (!isPostcode(c.postcode)) e.postcode = 'Please enter a valid UK postcode.'
-  return e
-}
-
-// Only surface an error once the field has been blurred (touched).
+/** Only surface an error once the field has been blurred (touched). */
 function gate<T extends Record<string, string>>(raw: T, touched: Record<string, boolean>): Partial<T> {
   const out: Partial<T> = {}
   for (const key in raw) if (touched[key]) out[key] = raw[key]
   return out
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────
+const allTouched = (c: Carer): Record<string, boolean> =>
+  Object.fromEntries(Object.keys(c).map(k => [k, true]))
+
+interface Persisted {
+  step: number
+  carer1: Carer
+  showCarer2: boolean
+  carer2: Carer
+  emergencyName: string
+  emergencyPhone: string
+}
 
 export function useSignup() {
   const [step, setStep] = useState(1)
@@ -110,22 +48,91 @@ export function useSignup() {
   const [emergencyPhone, setEmergencyPhoneRaw] = useState('')
   const [emergencyTouched, setEmergencyTouched] = useState<Record<string, boolean>>({})
 
-  // ── field updaters (sanitized) ──
+  // ── Persistence: survive a refresh, but not a new tab/session ──
+  // This is state, NOT a ref, on purpose: a ref would flip to true inside the
+  // restore effect and the save effect (same commit) would then immediately
+  // persist the still-empty initial state, wiping the saved form. As state, the
+  // save effect skips the mount commit and only runs once the restore is applied.
+  const [hydrated, setHydrated] = useState(false)
+
+  // Restoring must happen AFTER mount: sessionStorage doesn't exist on the server,
+  // so seeding state from it during render would make the server HTML (empty form)
+  // disagree with the client's restored values and break hydration.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const p: Persisted = JSON.parse(raw)
+        setStep(p.step ?? 1)
+        setCarer1({ ...emptyCarer(), ...p.carer1 })
+        setShowCarer2(!!p.showCarer2)
+        setCarer2({ ...emptyCarer(), ...p.carer2 })
+        setEmergencyNameRaw(p.emergencyName ?? '')
+        setEmergencyPhoneRaw(p.emergencyPhone ?? '')
+      }
+    } catch {
+      // corrupt/unavailable storage — start fresh rather than crash
+    }
+    setHydrated(true)
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (!hydrated) return // don't clobber saved data with initial defaults
+    const payload: Persisted = { step, carer1, showCarer2, carer2, emergencyName, emergencyPhone }
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    } catch {
+      // storage full/blocked — persistence is best-effort, never fatal
+    }
+  }, [hydrated, step, carer1, showCarer2, carer2, emergencyName, emergencyPhone])
+
+  // Leaving the sign-up flow discards the draft; a refresh keeps it.
+  // Why this works: navigating away unmounts React and runs this cleanup, but a
+  // refresh destroys the page without running cleanup — so refreshed data survives.
+  // The pathname check guards React StrictMode's dev-only mount→unmount→mount
+  // cycle, where we're still on /signup and must NOT clear.
+  useEffect(() => {
+    return () => {
+      if (!window.location.pathname.startsWith('/signup')) {
+        try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
+      }
+    }
+  }, [])
+
+  /** Call after a successful submit so a fresh sign-up doesn't reuse stale data. */
+  function clearSaved() {
+    try { sessionStorage.removeItem(STORAGE_KEY) } catch {}
+  }
+
+  // ── field updaters (sanitized + capped) ──
   const updateCarer1 = (f: CarerField, v: string) => setCarer1(c => ({ ...c, [f]: sanitizeCarerField(f, v) }))
   const updateCarer2 = (f: CarerField, v: string) => setCarer2(c => ({ ...c, [f]: sanitizeCarerField(f, v) }))
   const setEmergencyName = (v: string) => setEmergencyNameRaw(sanitizeName(v))
   const setEmergencyPhone = (v: string) => setEmergencyPhoneRaw(sanitizePhone(v))
-  const touchCarer1 = (f: CarerField) => {
-    setCarer1Touched(t => ({ ...t, [f]: true }))
-    // Only tidy a VALID postcode — never reshape invalid input (that would move
-    // the space to the wrong place and make it harder to correct).
-    if (f === 'postcode') setCarer1(c => (isPostcode(c.postcode) ? { ...c, postcode: formatPostcode(c.postcode) } : c))
+
+  /** On blur: mark touched, trim the value, and tidy a VALID postcode. */
+  const blurCarer = (
+    setter: React.Dispatch<React.SetStateAction<Carer>>,
+    touchSetter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+  ) => (f: CarerField) => {
+    touchSetter(t => ({ ...t, [f]: true }))
+    setter(c => {
+      let v = c[f].trim()
+      // Never reshape an invalid postcode — that moves the space to the wrong
+      // place and makes it harder to correct.
+      if (f === 'postcode' && isPostcode(v)) v = formatPostcode(v)
+      return v === c[f] ? c : { ...c, [f]: v }
+    })
   }
-  const touchCarer2 = (f: CarerField) => {
-    setCarer2Touched(t => ({ ...t, [f]: true }))
-    if (f === 'postcode') setCarer2(c => (isPostcode(c.postcode) ? { ...c, postcode: formatPostcode(c.postcode) } : c))
+  const touchCarer1 = blurCarer(setCarer1, setCarer1Touched)
+  const touchCarer2 = blurCarer(setCarer2, setCarer2Touched)
+
+  const touchEmergency = (f: 'name' | 'phone') => {
+    setEmergencyTouched(t => ({ ...t, [f]: true }))
+    if (f === 'name') setEmergencyNameRaw(v => v.trim())
   }
-  const touchEmergency = (f: 'name' | 'phone') => setEmergencyTouched(t => ({ ...t, [f]: true }))
 
   function addCarer2() { setShowCarer2(true) }
   function removeCarer2() {
@@ -134,44 +141,26 @@ export function useSignup() {
     setCarer2Touched({})
   }
 
-  // ── raw errors ──
-  const carer1Raw = carerErrors(carer1)
-  const carer2Raw: CarerErrors = showCarer2 ? carerErrors(carer2) : {}
+  // ── validation ──
+  const carer1Raw = validateCarer(carer1, PARENT1_REQUIRED)
+  const carer2Raw: CarerErrors = showCarer2
+    ? { ...validateCarer(carer2, PARENT2_REQUIRED), ...crossCarerErrors(carer1, carer2) }
+    : {}
 
-  // Carer 2 can't reuse carer 1's email or number (hard block, shown on carer 2).
-  if (showCarer2) {
-    if (carer2.email.trim() && norm(carer2.email) === norm(carer1.email))
-      carer2Raw.email = 'Both carers can’t share an email.'
-    if (carer2.phone && carer2.phone === carer1.phone)
-      carer2Raw.phone = 'Both carers can’t share a number.'
-  }
+  // An untouched/blank second carer is treated as absent everywhere.
+  const carer2Effective = showCarer2 && !isCarerEmpty(carer2) ? carer2 : null
 
-  // Emergency contact: required, valid, and NOT the same person (name or number)
-  // as either carer. Numbers are already national digits, so compare directly.
-  const nameDuplicatesCarer =
-    !!norm(emergencyName) &&
-    (norm(emergencyName) === norm(carer1.fullName) ||
-      (showCarer2 && norm(emergencyName) === norm(carer2.fullName)))
-  const phoneDuplicatesCarer =
-    !!emergencyPhone &&
-    (emergencyPhone === carer1.phone ||
-      (showCarer2 && emergencyPhone === carer2.phone))
+  const { errors: emergencyRaw, nameDuplicatesCarer } = validateEmergency(
+    { name: emergencyName, phone: emergencyPhone },
+    carer1,
+    carer2Effective,
+  )
 
-  // Hard errors (block "Next"): name required; phone required, valid, and not a
-  // carer's number. A matching NAME is only a soft warning (see below) — two
-  // different people can share a name, but a shared number means it's a carer.
-  const emergencyRawClean: Record<string, string> = {}
-  if (!emergencyName.trim()) emergencyRawClean.name = 'Please enter an emergency contact name.'
-  if (!emergencyPhone.trim()) emergencyRawClean.phone = 'Please enter an emergency contact number.'
-  else if (!isPhone(emergencyPhone)) emergencyRawClean.phone = 'Please enter a valid phone number.'
-  else if (phoneDuplicatesCarer) emergencyRawClean.phone = 'Use a different number from the carers above.'
-
-  // ── visible (touched-gated) errors for the UI ──
+  // ── visible (touched-gated) errors ──
   const carer1Errors = gate(carer1Raw as Record<string, string>, carer1Touched) as CarerErrors
   const carer2Errors = gate(carer2Raw as Record<string, string>, carer2Touched) as CarerErrors
-  const emergencyErrors = gate(emergencyRawClean, emergencyTouched)
+  const emergencyErrors = gate(emergencyRaw, emergencyTouched)
 
-  // Soft, non-blocking warning when the name matches a carer's.
   const emergencyNameWarning =
     emergencyTouched.name && nameDuplicatesCarer && emergencyName.trim()
       ? 'This matches a carer above — please make sure it’s a different person.'
@@ -180,16 +169,43 @@ export function useSignup() {
   const step1Valid =
     Object.keys(carer1Raw).length === 0 &&
     Object.keys(carer2Raw).length === 0 &&
-    Object.keys(emergencyRawClean).length === 0
+    Object.keys(emergencyRaw).length === 0
+
+  /** Reveal every error at once — used when the user tries to advance too early. */
+  function touchAllStep1() {
+    setCarer1Touched(allTouched(carer1))
+    if (showCarer2) setCarer2Touched(allTouched(carer2))
+    setEmergencyTouched({ name: true, phone: true })
+  }
+
+  /** Next stays enabled: if invalid, show every error instead of advancing. */
+  function attemptNext() {
+    if (!step1Valid) {
+      touchAllStep1()
+      return false
+    }
+    setStep(2)
+    return true
+  }
+
+  /** The data as the API layer wants it (carer2 dropped when blank). */
+  function getSignupData(): SignupData {
+    return {
+      carer1,
+      carer2: carer2Effective,
+      emergency: { name: emergencyName, phone: emergencyPhone },
+    }
+  }
 
   return {
     step, setStep,
-    carer1, updateCarer1, touchCarer1, carer1Errors,
+    carer1, updateCarer1, touchCarer1, carer1Errors, carer1Required: PARENT1_REQUIRED,
     showCarer2, addCarer2, removeCarer2,
-    carer2, updateCarer2, touchCarer2, carer2Errors,
+    carer2, updateCarer2, touchCarer2, carer2Errors, carer2Required: PARENT2_REQUIRED,
     emergencyName, setEmergencyName,
     emergencyPhone, setEmergencyPhone,
     touchEmergency, emergencyErrors, emergencyNameWarning,
-    step1Valid,
+    step1Valid, attemptNext,
+    getSignupData, clearSaved,
   }
 }

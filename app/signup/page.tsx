@@ -1,7 +1,6 @@
 'use client'
 
 import Header from '@/components/Header'
-import BackButton from '@/components/BackButton'
 import { Card } from '@/components/ui/Card'
 import { TextField } from '@/components/ui/TextField'
 import Stepper from '@/components/signup/Stepper'
@@ -18,10 +17,7 @@ export default function SignupPage() {
 
       <div className="flex-1 flex items-start justify-center px-4 py-10">
         <Card className="p-8 w-full max-w-lg">
-          <div className="relative flex items-center justify-center mb-8">
-            <div className="absolute left-0">
-              <BackButton />
-            </div>
+          <div className="flex items-center justify-center mb-8">
             <h2 className="text-2xl font-bold text-[var(--color-text)]">Create account</h2>
           </div>
 
@@ -37,6 +33,7 @@ export default function SignupPage() {
                 errors={s.carer1Errors}
                 onChange={s.updateCarer1}
                 onBlur={s.touchCarer1}
+                required={s.carer1Required}
               />
 
               {/* Optional second parent / carer */}
@@ -67,6 +64,7 @@ export default function SignupPage() {
                     errors={s.carer2Errors}
                     onChange={s.updateCarer2}
                     onBlur={s.touchCarer2}
+                    required={s.carer2Required}
                   />
                 </div>
               )}
@@ -109,9 +107,8 @@ export default function SignupPage() {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  onClick={() => s.setStep(2)}
-                  disabled={!s.step1Valid}
-                  className="btn-primary px-6 py-2.5 rounded-[var(--radius-md)] font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={s.attemptNext}
+                  className="btn-primary px-6 py-2.5 rounded-[var(--radius-md)] font-semibold transition"
                 >
                   Next →
                 </button>
