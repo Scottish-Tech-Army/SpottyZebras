@@ -1,5 +1,5 @@
-import type { Carer, CarerField, CarerErrors, EmergencyContact } from './types'
-import { MAX } from './constants'
+import type { Carer, CarerField, CarerErrors, EmergencyContact, Child, ChildField, ChildErrors } from './types'
+import { MAX, CHILD_REQUIRED, CHILD_ADDRESS_REQUIRED, PASSWORD_MIN } from './constants'
 
 // ─── Sanitizers (block invalid characters + cap length as the user types) ────
 
@@ -134,3 +134,114 @@ export function validateEmergency(
 
   return { errors, nameDuplicatesCarer }
 }
+
+// ─── Child ──────────────────────────────────────────────────────────────────
+
+export const sanitizeChildField = (f: ChildField, v: string): string => {
+  switch (f) {
+    case 'name':         return sanitizeName(v)
+    case 'dob':          return v                          // native date input
+    case 'supportNeeds': return cap(v, MAX.supportNeeds)
+    case 'allergies':    return cap(v, MAX.allergies)
+    case 'line1':        return cap(v, MAX.line1)
+    case 'line2':        return cap(v, MAX.line2)
+    case 'city':         return cap(v, MAX.city)
+    case 'postcode':     return sanitizePostcode(v)
+  }
+}
+
+/** Children may be registered from age 0 up to and including their 18th birthday. */
+export const MAX_CHILD_AGE = 18
+
+/** Local yyyy-mm-dd (avoids the UTC off-by-one that toISOString can cause). */
+const toISODate = (d: Date): string => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+/**
+ * The allowed DOB range: youngest = today (age 0), oldest = 18 years ago today.
+ * Used for the date picker's min/max and re-checked in isValidDob().
+ */
+export function dobBounds(): { min: string; max: string } {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const oldest = new Date(today)
+  oldest.setFullYear(oldest.getFullYear() - MAX_CHILD_AGE)
+  return { min: toISODate(oldest), max: toISODate(today) }
+}
+
+/** A real date within the 0–18 age range. The picker's min/max is a UI guard;
+ *  this is the actual rule (and the one the server will re-run). */
+export function isValidDob(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false
+  if (Number.isNaN(new Date(`${v}T00:00:00`).getTime())) return false
+  const { min, max } = dobBounds()
+  return v >= min && v <= max   // ISO yyyy-mm-dd strings compare chronologically
+}
+
+const CHILD_REQUIRED_MSG: Record<ChildField, string> = {
+  name:         'Please enter the child’s name.',
+  dob:          'Please enter a date of birth.',
+  supportNeeds: 'Please enter any additional support needs.',
+  allergies:    'Please enter any allergies.',
+  line1:        'Please enter the first line of the address.',
+  line2:        'Please enter the second line of the address.',
+  city:         'Please enter a town or city.',
+  postcode:     'Please enter a postcode.',
+}
+
+/**
+ * A child needs a name and DOB; the address is required only when it differs
+ * from carer 1's. Format checks (DOB, postcode) always run when a value present.
+ */
+export function validateChild(c: Child): ChildErrors {
+  const e: ChildErrors = {}
+
+  const required = new Set<string>(CHILD_REQUIRED)
+  if (!c.sameAddressAsCarer1) for (const f of CHILD_ADDRESS_REQUIRED) required.add(f)
+
+  const fields: ChildField[] = ['name', 'dob', 'supportNeeds', 'allergies', 'line1', 'line2', 'city', 'postcode']
+  for (const f of fields) {
+    // Address fields are irrelevant while the child shares carer 1's address.
+    if (c.sameAddressAsCarer1 && (f === 'line1' || f === 'line2' || f === 'city' || f === 'postcode')) continue
+
+    if (!c[f].trim()) {
+      if (required.has(f)) e[f] = CHILD_REQUIRED_MSG[f]
+      continue
+    }
+    if (f === 'dob' && !isValidDob(c.dob)) e.dob = 'Please enter a valid date of birth.'
+    if (f === 'postcode' && !isPostcode(c.postcode)) e.postcode = 'Please enter a valid UK postcode.'
+  }
+
+  return e
+}
+
+/**
+ * Sign-up rule: across ALL children, at least one must have additional support
+ * needs / medical conditions recorded. Surfaced as a form-level error on Next.
+ */
+export const hasAnySupportNeeds = (children: Child[]) =>
+  children.some(c => c.supportNeeds.trim().length > 0)
+
+export const SUPPORT_NEEDS_REQUIRED_MSG =
+  'At least one child must have additional support needs / medical conditions recorded.'
+
+// ─── Password ───────────────────────────────────────────────────────────────
+
+export interface PasswordRule { label: string; met: boolean }
+
+/** The live checklist shown under the password field. */
+export function passwordChecks(pw: string): PasswordRule[] {
+  return [
+    { label: `At least ${PASSWORD_MIN} characters`, met: pw.length >= PASSWORD_MIN },
+    { label: 'An uppercase letter', met: /[A-Z]/.test(pw) },
+    { label: 'A lowercase letter', met: /[a-z]/.test(pw) },
+    { label: 'A number', met: /\d/.test(pw) },
+    { label: 'A special character', met: /[^A-Za-z0-9]/.test(pw) },
+  ]
+}
+
+export const isPasswordValid = (pw: string) => passwordChecks(pw).every(r => r.met)

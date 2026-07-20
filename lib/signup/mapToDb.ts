@@ -1,4 +1,4 @@
-import type { Carer, SignupData, ParentProfileRow } from './types'
+import type { Carer, Child, SignupData, ParentProfileRow, ChildRow } from './types'
 import { isCarerEmpty } from './validation'
 
 const t = (v: string) => v.trim()
@@ -32,20 +32,46 @@ export function toParentProfileRow(data: SignupData): ParentProfileRow {
     full_name: t(c1.fullName),
     email: loginEmailFor(data),
     phone: e164(c1.phone),
-    address_line1: t(c1.line1),
-    address_line2: orNull(c1.line2),
-    city: orNull(c1.city),
+    address_line_1: t(c1.line1),
+    address_line_2: orNull(c1.line2),
+    town: orNull(c1.city),
     postcode: t(c1.postcode),
 
-    second_carer_full_name: c2 ? t(c2.fullName) : null,
+    second_carer_name: c2 ? orNull(c2.fullName) : null,
     second_carer_email: c2 ? emailOrNull(c2.email) : null,
     second_carer_phone: c2 && t(c2.phone) ? e164(c2.phone) : null,
-    second_carer_address_line1: c2 ? orNull(c2.line1) : null,
-    second_carer_address_line2: c2 ? orNull(c2.line2) : null,
-    second_carer_city: c2 ? orNull(c2.city) : null,
+    second_carer_address_line_1: c2 ? orNull(c2.line1) : null,
+    second_carer_address_line_2: c2 ? orNull(c2.line2) : null,
+    second_carer_town: c2 ? orNull(c2.city) : null,
     second_carer_postcode: c2 ? orNull(c2.postcode) : null,
 
     emergency_contact_name: t(data.emergency.name),
     emergency_contact_phone: e164(data.emergency.phone),
+    referral_source: orNull(data.referralSource),
   }
+}
+
+/**
+ * Each child becomes a row. When the child shares carer 1's address we COPY that
+ * address onto the row rather than leaving it NULL, so every child row is
+ * self-contained and queries never need to fall back to the parent.
+ */
+export function toChildRows(data: SignupData): ChildRow[] {
+  const c1 = data.carer1
+
+  return data.children.map((child: Child) => {
+    const addr = child.sameAddressAsCarer1 ? c1 : child
+
+    return {
+      full_name: t(child.name),
+      date_of_birth: t(child.dob),           // already ISO yyyy-mm-dd
+      address_line_1: orNull(addr.line1),
+      address_line_2: orNull(addr.line2),
+      town: orNull(addr.city),
+      postcode: orNull(addr.postcode),
+      additional_support_needs: orNull(child.supportNeeds),
+      allergies: orNull(child.allergies),
+      photo_consent: child.photoConsent,
+    }
+  })
 }

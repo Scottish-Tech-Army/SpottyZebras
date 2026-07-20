@@ -3,6 +3,7 @@
 import { TextField } from '@/components/ui/TextField'
 import EmailField from '@/components/signup/EmailField'
 import PhoneField from '@/components/signup/PhoneField'
+import AddressFields from '@/components/signup/AddressFields'
 import type { Carer, CarerField, CarerErrors } from '@/lib/signup/types'
 
 export default function CarerFields({
@@ -16,7 +17,7 @@ export default function CarerFields({
   errors: CarerErrors
   onChange: (field: CarerField, value: string) => void
   onBlur: (field: CarerField) => void
-  required: Set<CarerField>
+  required: ReadonlySet<string>
 }) {
   // Same policy the validator uses, so the "*" markers can never drift from the
   // rules. No asterisk means optional — we don't spell that out on every field.
@@ -46,33 +47,12 @@ export default function CarerFields({
         onBlur={() => onBlur('phone')}
         error={errors.phone}
       />
-      <TextField
-        label={`Address line 1${suffix('line1')}`}
-        value={carer.line1}
-        onChange={v => onChange('line1', v)}
-        onBlur={() => onBlur('line1')}
-        error={errors.line1}
-        autoComplete="address-line1"
-      />
-      <TextField
-        label="Address line 2"
-        value={carer.line2}
-        onChange={v => onChange('line2', v)}
-        autoComplete="address-line2"
-      />
-      <TextField
-        label="Town / City"
-        value={carer.city}
-        onChange={v => onChange('city', v)}
-        autoComplete="address-level2"
-      />
-      <TextField
-        label={`Postcode${suffix('postcode')}`}
-        value={carer.postcode}
-        onChange={v => onChange('postcode', v)}
-        onBlur={() => onBlur('postcode')}
-        error={errors.postcode}
-        autoComplete="postal-code"
+      <AddressFields
+        address={carer}
+        errors={errors}
+        onChange={onChange}
+        onBlur={onBlur}
+        required={required}
       />
     </div>
   )
