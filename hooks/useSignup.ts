@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type {
   Carer, CarerField, CarerErrors, SignupData, Child, ChildField, ChildErrors,
 } from '@/lib/signup/types'
-import { PARENT1_REQUIRED, PARENT2_REQUIRED, MAX_CHILDREN, PASSWORD_MAX } from '@/lib/signup/constants'
+import { PARENT1_REQUIRED, PARENT2_REQUIRED, MAX_CHILDREN, PASSWORD_MAX, SIGNUP_SUBMITTED_FLAG } from '@/lib/signup/constants'
 import {
   sanitizeCarerField, sanitizeChildField, sanitizeName, sanitizePhone,
   validateCarer, crossCarerErrors, validateEmergency, validateChild,
@@ -78,6 +78,10 @@ export function useSignup() {
   const [referralSource, setReferralSource] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const setPassword = (v: string) => setPasswordRaw(v.slice(0, PASSWORD_MAX))
+
+  // Submission lifecycle.
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   // ── Persistence: survive a refresh, but not a new tab/session ──
   // This is state, NOT a ref, on purpose: a ref would flip to true inside the
@@ -359,14 +363,37 @@ export function useSignup() {
     }
   }
 
-  /** Final submit. Gathers the payload once everything is valid.
-   *  TODO: POST to /api/signup (create auth user → app_user → parent_profile →
-   *  children), then clearSaved() + redirect to a "pending approval" screen. */
-  function submit() {
-    if (!canSubmit) { setPasswordTouched(true); return false }
-    const data = getSignupData()
-    void data // wiring to the API is the next task
-    return true
+  /** Final submit: POST the payload to /api/signup, which creates the auth user,
+   *  writes app_user / parent_profile / children, and emails the admin team. On
+   *  success we clear the saved draft and flip to the confirmation screen. */
+  async function submit() {
+    if (submitting) return                       // guard against double-submit
+    if (!canSubmit) { setPasswordTouched(true); return }
+
+    setSubmitError('')
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(getSignupData()),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? 'Something went wrong. Please try again.')
+
+      clearSaved()
+      // One-shot flag so ONLY a genuine just-submitted visitor sees the confirmation;
+      // direct/random hits to that URL fall through to Home.
+      try { sessionStorage.setItem(SIGNUP_SUBMITTED_FLAG, '1') } catch {}
+      // REPLACE (not push): the completed form drops out of history, so back can't
+      // return to it — the confirmation route pins back to Home too. Leave
+      // `submitting` true so the spinner holds until this page unmounts (no flash
+      // back to the form).
+      router.replace('/signup/submitted')
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setSubmitting(false)
+    }
   }
 
   return {
@@ -388,6 +415,7 @@ export function useSignup() {
     referralSource, setReferralSource,
     agreedToTerms, setAgreedToTerms,
     canSubmit, submit,
+    submitting, submitError,
     attemptNext,
     getSignupData, clearSaved,
   }

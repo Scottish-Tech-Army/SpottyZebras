@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import PasswordVisibilityToggle from '@/components/ui/PasswordVisibilityToggle'
 import { createClient } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,11 +27,27 @@ export default function LoginPage() {
         password,
       })
 
-      if (authError) {
-        setError(authError.message)
-      } else if (data.user) {
-        router.push('/dashboard')
+      if (authError || !data.session) {
+        setError(authError?.message ?? 'Could not sign you in. Please try again.')
+        return
       }
+
+      // Gate on admin approval: an account exists but stays inactive until the
+      // admin approves it. Verify server-side, and if not yet active, sign
+      // back out so no usable session lingers, then explain why.
+      const res = await fetch('/api/account-status', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      })
+      const status = await res.json().catch(() => ({ active: false }))
+
+      if (!status.active) {
+        await supabase.auth.signOut()
+        setError('Your account is under review. You can log in after the admin approves your registration.')
+        return
+      }
+
+      router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -72,15 +90,22 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
                 Password <span className="text-[var(--color-error)]">*</span>
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full px-3 py-2 border border-[var(--color-border-input)] rounded-[var(--radius-sm)] text-[var(--color-text)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] disabled:opacity-60"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="w-full px-3 py-2 pr-10 border border-[var(--color-border-input)] rounded-[var(--radius-sm)] text-[var(--color-text)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] disabled:opacity-60"
+                />
+                <PasswordVisibilityToggle
+                  revealed={showPassword}
+                  onToggle={() => setShowPassword((v) => !v)}
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             <div className="flex justify-end">

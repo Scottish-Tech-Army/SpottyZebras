@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { loadStripe } from '@stripe/stripe-js'
@@ -22,6 +22,14 @@ interface PaymentSession {
 type Status = 'loading' | 'succeeded' | 'failed'
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <SuccessContent />
+    </Suspense>
+  )
+}
+
+function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { reset } = useDonation()
