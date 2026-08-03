@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { passwordChecks } from '@/lib/signup/validation'
 import { PASSWORD_MIN } from '@/lib/signup/constants'
+import PasswordVisibilityToggle from '@/components/ui/PasswordVisibilityToggle'
 
 /**
  * Password field with a live requirements checklist. Each rule turns green as it's
@@ -21,19 +23,23 @@ export default function PasswordField({
   showChecklist?: boolean
 }) {
   const rules = passwordChecks(value)
+  const [revealed, setRevealed] = useState(false)
 
   return (
     <div>
       <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">{label}</label>
-      <input
-        type="password"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        onBlur={onBlur}
-        placeholder={`At least ${PASSWORD_MIN} characters`}
-        autoComplete="new-password"
-        className="w-full px-3 py-2 border rounded-[var(--radius-sm)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] text-sm text-[var(--color-text)] border-[var(--color-border-input)]"
-      />
+      <div className="relative">
+        <input
+          type={revealed ? 'text' : 'password'}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onBlur={onBlur}
+          placeholder={`At least ${PASSWORD_MIN} characters`}
+          autoComplete="new-password"
+          className="w-full px-3 py-2 pr-10 border rounded-[var(--radius-sm)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] text-sm text-[var(--color-text)] border-[var(--color-border-input)]"
+        />
+        <PasswordVisibilityToggle revealed={revealed} onToggle={() => setRevealed(v => !v)} />
+      </div>
       {showChecklist && (
         <ul className="mt-2 flex flex-col gap-1">
           {rules.map(rule => (

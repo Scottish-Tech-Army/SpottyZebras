@@ -31,7 +31,7 @@ function SignupWizard() {
       <Header />
 
       <div className="flex-1 flex items-start justify-center px-4 py-10">
-        <Card className="p-8 w-full max-w-lg">
+        <Card className="p-6 sm:p-8 w-full max-w-lg">
           <div className="flex items-center justify-center mb-8">
             <h2 className="text-2xl font-bold text-[var(--color-text)]">Create account</h2>
           </div>
@@ -40,6 +40,11 @@ function SignupWizard() {
               to a later step — show nothing rather than the wrong step. */}
           {!s.hydrated ? (
             <div className="py-16" />
+          ) : s.submitting ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="w-10 h-10 rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
+              <p className="text-sm text-[var(--color-text-muted)]">Creating your account…</p>
+            </div>
           ) : (
           <>
           <Stepper current={s.step} />
@@ -230,6 +235,10 @@ function SignupWizard() {
                   and consent to Spotty Zebras processing my child&apos;s information.
                 </span>
               </label>
+
+              {s.submitError && (
+                <p className="text-sm text-[var(--color-error)]">{s.submitError}</p>
+              )}
 
               <div className="border-t border-dashed border-[var(--color-border)]" />
 

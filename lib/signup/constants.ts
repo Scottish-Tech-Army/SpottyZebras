@@ -36,6 +36,10 @@ export const NO_ADDRESS_REQUIRED = new Set<AddressField>()
 export const PASSWORD_MIN = 8
 export const PASSWORD_MAX = 128
 
+/** One-shot flag set on a successful submit; the confirmation route only renders
+ *  when it's present, then clears it. Direct/random visits fall through to Home. */
+export const SIGNUP_SUBMITTED_FLAG = 'sz_signup_submitted'
+
 /** "How did you hear about us?" — optional; the label string is stored verbatim. */
 export const REFERRAL_OPTIONS = [
   'Friends or family',

@@ -22,13 +22,15 @@ export default function DashboardPage() {
       }
 
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name')
+        .from('app_user')
+        .select('full_name')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
+      // Greet by first name; fall back to the email prefix if the name is missing.
+      const firstFromName = profile?.full_name?.trim().split(' ')[0]
       const fallback = user.email?.split('@')[0] ?? 'there'
-      setFirstName(profile?.first_name ?? fallback)
+      setFirstName(firstFromName || fallback)
       setLoading(false)
     }
 
