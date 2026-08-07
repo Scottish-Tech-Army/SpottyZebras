@@ -23,10 +23,16 @@ export async function POST(request: Request) {
 
   const { data: row } = await admin
     .from('app_user')
-    .select('is_active')
+    .select('is_active, role, full_name')
     .eq('id', userData.user.id)
     .maybeSingle()
 
   // No row (shouldn't happen for a real user) is treated as not-active, failing safe.
-  return Response.json({ active: !!row?.is_active })
+  // Role drives the nav menu and full_name the greeting; the browser client can't read
+  // app_user directly (RLS), so this server route (service-role) is the reliable source.
+  return Response.json({
+    active: !!row?.is_active,
+    role: row?.role ?? null,
+    fullName: row?.full_name ?? null,
+  })
 }

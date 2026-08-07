@@ -1,13 +1,13 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { loadStripe } from '@stripe/stripe-js'
-import Header from '@/components/Header'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { useDonation } from '@/hooks/useDonation'
+import { useAppChrome } from '@/components/AppUserContext'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -33,10 +33,18 @@ function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { reset } = useDonation()
+  const { loggedIn } = useAppChrome()
   const [status, setStatus] = useState<Status>('loading')
   const [session, setSession] = useState<PaymentSession | null>(null)
+  // Run the read/redirect exactly once. Strict Mode invokes effects twice in dev,
+  // and this effect removes sz_payment on success — without the guard the second
+  // run would see it missing and bounce to /donate before the screen can show.
+  const handled = useRef(false)
 
   useEffect(() => {
+    if (handled.current) return
+    handled.current = true
+
     const raw = sessionStorage.getItem('sz_payment')
     if (!raw) { router.replace('/donate'); return }
 
@@ -70,10 +78,8 @@ function SuccessContent() {
   const succeeded = status === 'succeeded'
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <Card className="p-10 w-full max-w-md text-center">
+    <div className="flex-1 flex items-center justify-center px-4 py-10">
+      <Card className="p-10 w-full max-w-md text-center">
           <div className="mx-auto mb-6 flex items-center justify-center w-20 h-20 rounded-full border-2 border-[var(--color-border)] bg-[var(--color-success-icon-bg)]">
             <span className="text-3xl">{succeeded ? '🖤' : '😔'}</span>
           </div>
@@ -100,11 +106,14 @@ function SuccessContent() {
           </p>
 
           <div className="flex flex-col gap-3">
-            <Link href="/" className="w-full">
-              <Button size="lg" className="w-full">Back to dashboard</Button>
-            </Link>
+            {/* Logged-out donors have no nav, so give them a clear way out. */}
+            {!loggedIn && (
+              <Link href="/" className="w-full">
+                <Button size="lg" className="w-full">Go to home</Button>
+              </Link>
+            )}
             <Button
-              variant="outline"
+              variant={loggedIn ? 'primary' : 'outline'}
               size="lg"
               onClick={() => {
                 sessionStorage.removeItem('sz_payment')
@@ -119,6 +128,5 @@ function SuccessContent() {
           </div>
         </Card>
       </div>
-    </div>
   )
 }
