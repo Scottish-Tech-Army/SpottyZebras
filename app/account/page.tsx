@@ -7,7 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ChevronLeftIcon } from '@/components/icons'
 import { createClient } from '@/lib/supabase'
 
-// ─── Shapes the screen renders. The API layer (built next) will return these. ──
+// ─── Shapes the screen renders — the /api/account response. ──
 interface CarerInfo { name: string; email: string; phone: string; address: string }
 interface EmergencyInfo { name: string; phone: string }
 interface ChildInfo { name: string; age: number; specialNeeds: string; allergies: string; photoConsent: boolean }
@@ -17,26 +17,19 @@ interface ParentAccount {
   emergency: EmergencyInfo
   children: ChildInfo[]
 }
-
-// TODO: replace with a fetch to the parent account API once that's built.
-const PLACEHOLDER: ParentAccount = {
-  carer1: { name: 'Emma Holland', email: 'emma@example.com', phone: '07700 900001', address: '12 Test Street, Glasgow, G1 2AB' },
-  carer2: { name: 'James Holland', email: 'james@example.com', phone: '07700 900002', address: '12 Test Street, Glasgow, G1 2AB' },
-  emergency: { name: 'Priya Shah', phone: '07700 900003' },
-  children: [
-    { name: 'Aaliyah', age: 7, specialNeeds: 'Autism', allergies: 'Peanuts', photoConsent: true },
-    { name: 'Idris', age: 4, specialNeeds: '', allergies: '', photoConsent: false },
-  ],
+interface AccountResponse {
+  role: 'admin' | 'parent'
+  name: string
+  email: string
+  parent: ParentAccount | null
 }
 
 // On wide screens, an item alone on the final row (odd count) is centred.
 const CENTER_ODD = 'lg:col-span-2 lg:w-1/2 lg:mx-auto'
 
-interface Identity { role: 'admin' | 'parent'; name: string; email: string }
-
 export default function AccountPage() {
   const router = useRouter()
-  const [me, setMe] = useState<Identity | null>(null)
+  const [account, setAccount] = useState<AccountResponse | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
@@ -47,17 +40,14 @@ export default function AccountPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { router.replace('/login'); return }
 
-      const res = await fetch('/api/account-status', {
+      const res = await fetch('/api/account', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
-      const status = await res.json().catch(() => ({}))
+      const data = await res.json().catch(() => null)
       if (!alive) return
-      setMe({
-        role: status.role === 'admin' ? 'admin' : 'parent',
-        name: status.fullName ?? '',
-        email: session.user.email ?? '',
-      })
+      if (!data?.role) { router.replace('/login'); return }
+      setAccount(data)
     }
     load()
     return () => { alive = false }
@@ -68,8 +58,6 @@ export default function AccountPage() {
     await createClient().auth.signOut()
     router.replace('/login')
   }
-
-  if (!me) return <div className="min-h-screen" />
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -97,13 +85,19 @@ export default function AccountPage() {
       </header>
 
       <div className="flex-1 flex justify-center px-4 py-6">
-        <div className="w-full max-w-lg lg:max-w-3xl flex flex-col gap-5">
-          {me.role === 'admin' ? (
-            <AdminView name={me.name} email={me.email} />
-          ) : (
-            <ParentView data={PLACEHOLDER} />
-          )}
-        </div>
+        {!account ? (
+          <div className="flex items-center justify-center py-20" role="status" aria-label="Loading">
+            <div className="w-10 h-10 rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
+          </div>
+        ) : (
+          <div className="w-full max-w-lg lg:max-w-3xl flex flex-col gap-5">
+            {account.parent ? (
+              <ParentView data={account.parent} />
+            ) : (
+              <AdminView name={account.name} email={account.email} />
+            )}
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

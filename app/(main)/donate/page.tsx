@@ -46,10 +46,6 @@ export default function DonatePage() {
           <h2 className="text-3xl font-bold text-[var(--color-text)] text-center">Help more families</h2>
         </div>
 
-        <p className="text-[var(--color-text-muted)] text-sm text-center mb-8 leading-relaxed">
-          Every pound keeps our events free for the families who need us most.
-        </p>
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <FormSection label="How often">
             <FrequencyToggle value={frequency} onChange={setFrequency} />

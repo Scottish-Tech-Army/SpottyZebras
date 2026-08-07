@@ -1,15 +1,18 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ArrowLeftIcon } from '@/components/icons'
 
 export default function BackButton({ href }: { href?: string }) {
   const router = useRouter()
   return (
     <button
-      onClick={() => href ? router.push(href) : router.back()}
-      className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] font-medium flex items-center gap-1"
+      type="button"
+      onClick={() => (href ? router.push(href) : router.back())}
+      aria-label="Back"
+      className="-ml-1 p-1 rounded-[var(--radius-sm)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-sand)] transition"
     >
-      ← Back
+      <ArrowLeftIcon className="w-6 h-6" />
     </button>
   )
 }
