@@ -1,7 +1,9 @@
 'use client'
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
+import { isEmail, isPostcode, formatPostcode, sanitizeEmail, sanitizePostcode } from '@/lib/signup/validation'
 
 const PRESETS = [5, 10, 20, 50, 100]
 
@@ -28,12 +30,6 @@ function getAmountError(amount: string): string {
   return ''
 }
 
-function getEmailError(email: string): string {
-  if (email.trim() === '') return 'Please enter your email.'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.'
-  return ''
-}
-
 // All donation state lives here. It's held by DonationProvider (mounted in the
 // donate layout) so it survives navigation between /donate and /donate/payment,
 // and is discarded automatically when the user leaves the donation flow.
@@ -46,14 +42,14 @@ function useDonationState() {
   const [giftAid, setGiftAid] = useState(true)
   const [name, setName] = useState('')
   const [nameTouched, setNameTouched] = useState(false)
-  const [email, setEmail] = useState('')
+  const [email, setEmailRaw] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
   // Gift Aid address (HMRC requires the donor's home address to claim Gift Aid)
   const [addressLine1, setAddressLine1] = useState('')
   const [addressLine1Touched, setAddressLine1Touched] = useState(false)
   const [addressLine2, setAddressLine2] = useState('')
   const [city, setCity] = useState('')
-  const [postcode, setPostcode] = useState('')
+  const [postcode, setPostcodeRaw] = useState('')
   const [postcodeTouched, setPostcodeTouched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [apiError, setApiError] = useState('')
@@ -61,6 +57,43 @@ function useDonationState() {
   function setAmount(v: string) {
     setAmountRaw(sanitizeAmount(v))
   }
+  // Same sanitizers as sign-up: email strips stray characters, postcode uppercases.
+  const setEmail = (v: string) => setEmailRaw(sanitizeEmail(v))
+  const setPostcode = (v: string) => setPostcodeRaw(sanitizePostcode(v))
+  // On blur, tidy a VALID postcode to its canonical spacing (as sign-up does).
+  function blurPostcode() {
+    setPostcodeTouched(true)
+    setPostcodeRaw(prev => (isPostcode(prev) ? formatPostcode(prev) : prev))
+  }
+
+  // Pre-fill from the donor's saved details when they're logged in; guests stay blank.
+  const prefilled = useRef(false)
+  useEffect(() => {
+    if (prefilled.current) return
+    prefilled.current = true
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await fetch('/api/donor-profile', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (!res.ok) return
+        const p = await res.json()
+        // Only fill fields the donor hasn't already started editing.
+        if (p.fullName)     setName(prev => prev || p.fullName)
+        if (p.email)        setEmailRaw(prev => prev || p.email)
+        if (p.addressLine1) setAddressLine1(prev => prev || p.addressLine1)
+        if (p.addressLine2) setAddressLine2(prev => prev || p.addressLine2)
+        if (p.city)         setCity(prev => prev || p.city)
+        if (p.postcode)     setPostcodeRaw(prev => prev || p.postcode)
+      } catch {
+        // Pre-fill is best-effort — never block the form.
+      }
+    })()
+  }, [])
 
   // Wipe everything back to defaults — used after a completed donation.
   function reset() {
@@ -89,10 +122,17 @@ function useDonationState() {
 
   const amountErr   = getAmountError(amount)
   const nameErr     = name.trim() === '' ? 'Please enter your full name.' : ''
-  const emailErr    = getEmailError(email)
-  // Address is only required to claim Gift Aid (HMRC needs the donor's home address).
+  const emailErr    = email.trim() === ''
+    ? 'Please enter your email.'
+    : !isEmail(email) ? 'Please enter a valid email.' : ''
+  // Address + postcode are only required to claim Gift Aid (HMRC needs the donor's
+  // home address); the postcode is also format-checked, like sign-up.
   const addressLine1Err = giftAid && addressLine1.trim() === '' ? 'Please enter your address.' : ''
-  const postcodeErr     = giftAid && postcode.trim() === '' ? 'Please enter your postcode.' : ''
+  const postcodeErr     = !giftAid
+    ? ''
+    : postcode.trim() === ''
+      ? 'Please enter your postcode.'
+      : !isPostcode(postcode) ? 'Please enter a valid UK postcode.' : ''
 
   const isFormValid = !amountErr && !nameErr && !emailErr && !addressLine1Err && !postcodeErr
 
@@ -156,7 +196,7 @@ function useDonationState() {
     addressLine1, setAddressLine1, addressLine1Touched, setAddressLine1Touched,
     addressLine2, setAddressLine2,
     city, setCity,
-    postcode, setPostcode, postcodeTouched, setPostcodeTouched,
+    postcode, setPostcode, postcodeTouched, setPostcodeTouched, blurPostcode,
     loading, apiError,
     selectedPreset,
     finalAmount,
