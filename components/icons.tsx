@@ -90,14 +90,6 @@ export const ChevronLeftIcon = (p: IconProps) => (
   </SvgIcon>
 )
 
-/** Back arrow */
-export const ArrowLeftIcon = (p: IconProps) => (
-  <SvgIcon {...p}>
-    <path d="m12 19-7-7 7-7" />
-    <path d="M19 12H5" />
-  </SvgIcon>
-)
-
 /** Single person — avatar fallback */
 export const UserIcon = (p: IconProps) => (
   <SvgIcon {...p}>
