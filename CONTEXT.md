@@ -9,7 +9,7 @@
 - app_user: id, full_name, role ('parent'|'admin'|'super_admin'), is_active, created_at, updated_at
 - parent_profile: user_id (FK), full_name, email, phone, address_line_1, address_line_2, town, postcode, second_carer_name, second_carer_email, second_carer_phone, second_carer_address_line_1, second_carer_address_line_2, second_carer_town, second_carer_postcode, emergency_contact_name, emergency_contact_phone, referral_source, created_at, updated_at
 - child: parent_id (FK), full_name, date_of_birth, address_line_1, address_line_2, town, postcode, additional_support_needs, allergies, photo_consent
-- event: created_by (FK), title, description, event_date, start_time, end_time, location, image_url, age_range_min/max, price (0=free), max_capacity, status
+- event: created_by (FK), title, description, start_time, end_time, location, image_url, age_range_min/max, price (0=free), max_capacity, status
 - booking: event_id (FK), child_id (FK), parent_id (FK), status ('confirmed')
 
 ## Auth Flow
