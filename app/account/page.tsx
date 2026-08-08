@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Header from '@/components/Header'
+import BackButton from '@/components/BackButton'
 import { Card } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { ChevronLeftIcon } from '@/components/icons'
 import { createClient } from '@/lib/supabase'
 
 // ─── Shapes the screen renders — the /api/account response. ──
@@ -61,43 +62,36 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Minimal header: back + title (left), prominent Sign out button (right) */}
-      <header className="flex items-center justify-between gap-3 px-4 sm:px-8 py-4 bg-white/60 backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Back"
-            className="-ml-1 p-1 rounded-[var(--radius-sm)] text-[var(--color-text)] hover:bg-[var(--color-sand)] transition"
-          >
-            <ChevronLeftIcon className="w-6 h-6" />
-          </button>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">Account</h1>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setConfirmOpen(true)}
-          className="rounded-[var(--radius-md)] border border-[var(--color-error)] px-4 py-1.5 text-sm font-semibold text-[var(--color-error)] transition hover:bg-[var(--color-sand)]"
-        >
-          Sign out
-        </button>
-      </header>
+      {/* Standard Spotty Zebras header, same as other screens (no account avatar here). */}
+      <Header />
 
       <div className="flex-1 flex justify-center px-4 py-6">
-        {!account ? (
-          <div className="flex items-center justify-center py-20" role="status" aria-label="Loading">
-            <div className="w-10 h-10 rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
+        <div className="w-full max-w-lg lg:max-w-3xl flex flex-col gap-5">
+          {/* In-screen title: back + Account (left), Sign out (right) */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BackButton />
+              <h1 className="text-2xl font-bold text-[var(--color-text)]">Account</h1>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(true)}
+              className="rounded-[var(--radius-md)] border border-[var(--color-error)] px-4 py-1.5 text-sm font-semibold text-[var(--color-error)] transition hover:bg-[var(--color-sand)]"
+            >
+              Sign out
+            </button>
           </div>
-        ) : (
-          <div className="w-full max-w-lg lg:max-w-3xl flex flex-col gap-5">
-            {account.parent ? (
-              <ParentView data={account.parent} />
-            ) : (
-              <AdminView name={account.name} email={account.email} />
-            )}
-          </div>
-        )}
+
+          {!account ? (
+            <div className="flex items-center justify-center py-20" role="status" aria-label="Loading">
+              <div className="w-10 h-10 rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
+            </div>
+          ) : account.parent ? (
+            <ParentView data={account.parent} />
+          ) : (
+            <AdminView name={account.name} email={account.email} />
+          )}
+        </div>
       </div>
 
       <ConfirmDialog

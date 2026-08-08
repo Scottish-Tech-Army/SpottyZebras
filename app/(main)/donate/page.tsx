@@ -43,7 +43,7 @@ export default function DonatePage() {
               <BackButton href="/" />
             </div>
           )}
-          <h2 className="text-3xl font-bold text-[var(--color-text)] text-center">Help more families</h2>
+          <h2 className="text-3xl font-bold text-[var(--color-secondary)] text-center">Help more families</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">

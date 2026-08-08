@@ -62,7 +62,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="bg-[var(--color-surface)] backdrop-blur-sm rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] border border-[var(--color-border)] p-8 w-full max-w-sm">
           <div className="flex items-center justify-center mb-2">
-            <h2 className="text-2xl font-bold text-[var(--color-text)]">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-[var(--color-secondary)]">Login</h2>
           </div>
 
           <p className="text-center text-sm text-[var(--color-text-muted)] mb-8">
