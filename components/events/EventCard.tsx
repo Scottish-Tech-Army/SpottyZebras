@@ -1,6 +1,6 @@
 import { ClockIcon, MapPinIcon, ImageIcon } from '@/components/icons'
 import { ageLabel, formatEventWhen, priceLabel } from '@/lib/events/format'
-import type { EventItem } from '@/lib/events/mockEvents'
+import type { EventItem } from '@/lib/events/types'
 
 /**
  * One event, responsive: on phones the image sits on the left of the row; from

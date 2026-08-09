@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { ChevronLeftIcon, ChevronRightIcon, TodayIcon, XIcon } from '@/components/icons'
 import { EventCard } from '@/components/events/EventCard'
-import { getMockEvents } from '@/lib/events/mockEvents'
+import { createClient } from '@/lib/supabase'
+import type { EventItem } from '@/lib/events/types'
 import { formatDayLabelLocal, formatWeekRange } from '@/lib/events/format'
 import {
   addDays, addMonths, endOfMonth, isBeforeDay, isSameDay, londonDateKey, monthLabel,
@@ -23,7 +24,32 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 export default function EventCalendar() {
   // `today` is fixed for the life of the screen so comparisons stay stable.
   const today = useMemo(() => new Date(), [])
-  const events = useMemo(() => getMockEvents(today), [today])
+
+  // Events come from the API (today → next 6 months). `null` means still loading.
+  const [events, setEvents] = useState<EventItem[] | null>(null)
+  const [loadError, setLoadError] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    async function load() {
+      try {
+        const { data: { session } } = await createClient().auth.getSession()
+        if (!session) throw new Error('no session')
+        const res = await fetch('/api/events', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (!res.ok) throw new Error('request failed')
+        const data = await res.json()
+        if (alive) setEvents(data.events ?? [])
+      } catch {
+        if (alive) { setEvents([]); setLoadError(true) }
+      }
+    }
+    load()
+    return () => { alive = false }
+  }, [])
+
+  const loading = events === null
 
   const [view, setView] = useState<View>('week')
   // One cursor drives the displayed period: its week in week view, its month in
@@ -38,7 +64,7 @@ export default function EventCalendar() {
   // days never carry a dot — the API only ever returns events from today on.
   const eventDays = useMemo(() => {
     const todayKey = ymd(today)
-    return new Set(events.map(e => londonDateKey(e.startsAt)).filter(key => key >= todayKey))
+    return new Set((events ?? []).map(e => londonDateKey(e.startsAt)).filter(key => key >= todayKey))
   }, [events, today])
 
   function step(dir: -1 | 1) {
@@ -89,7 +115,7 @@ export default function EventCalendar() {
   const listFromKey = ymd(listFrom)
   const fromKey = listFromKey > todayKey ? listFromKey : todayKey // ISO keys sort lexically
   const toKey = ymd(listTo)
-  const listEvents = events
+  const listEvents = (events ?? [])
     .filter(e => {
       const key = londonDateKey(e.startsAt)
       return key >= fromKey && key <= toKey
@@ -199,7 +225,13 @@ export default function EventCalendar() {
             </PillButton>
           )}
         </div>
-        {listEvents.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16" role="status" aria-label="Loading events">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--color-border)] border-t-[var(--color-primary)]" />
+          </div>
+        ) : loadError ? (
+          <p className="text-sm text-[var(--color-error)]">Couldn’t load events. Please refresh to try again.</p>
+        ) : listEvents.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)]">{emptyMessage}</p>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
