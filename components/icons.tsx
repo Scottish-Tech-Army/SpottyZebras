@@ -108,6 +108,14 @@ export const TodayIcon = (p: IconProps) => (
   </SvgIcon>
 )
 
+/** Plus — add / create */
+export const PlusIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </SvgIcon>
+)
+
 /** Close / clear */
 export const XIcon = (p: IconProps) => (
   <SvgIcon {...p}>
