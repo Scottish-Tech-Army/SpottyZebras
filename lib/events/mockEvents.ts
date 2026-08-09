@@ -1,4 +1,4 @@
-import { addDays } from './date'
+import { addDays, londonInstant, ymd } from './date'
 
 /**
  * A single event, shaped after the `event` table (camelCase for the front end):
@@ -24,35 +24,12 @@ export interface EventItem {
   status: string
 }
 
-/**
- * Builds the ISO instant for a UK wall-clock time on `day`. Constructing the
- * instant from Europe/London (not the runtime zone) keeps the demo times
- * correct through both BST and GMT — the same rule the real data relies on.
- */
-function londonIso(day: Date, hh: number, mm: number): string {
-  const guessUtc = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm)
-  const offsetMin = londonOffsetMinutes(new Date(guessUtc))
-  return new Date(guessUtc - offsetMin * 60000).toISOString()
-}
-
-/** How far Europe/London is from UTC at a given instant, in minutes. */
-function londonOffsetMinutes(instant: Date): number {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/London', hourCycle: 'h23',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    }).formatToParts(instant).map(x => [x.type, x.value]),
-  )
-  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
-  return Math.round((asUtc - instant.getTime()) / 60000)
-}
-
 /** Events generated relative to `today`, so there's always something in the
  *  current week and the weeks ahead whatever the real date is. */
 export function getMockEvents(today: Date): EventItem[] {
+  const pad = (n: number) => String(n).padStart(2, '0')
   const at = (offsetDays: number, hh: number, mm: number) =>
-    londonIso(addDays(today, offsetDays), hh, mm)
+    londonInstant(ymd(addDays(today, offsetDays)), `${pad(hh)}:${pad(mm)}`)
 
   return [
     {
