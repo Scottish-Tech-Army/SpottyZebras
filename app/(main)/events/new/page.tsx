@@ -10,6 +10,7 @@ import { TextField } from '@/components/ui/TextField'
 import DateField from '@/components/signup/DateField'
 import { ImageIcon, XIcon } from '@/components/icons'
 import { useAppChrome } from '@/components/AppUserContext'
+import { createClient } from '@/lib/supabase'
 import {
   type EventFormValues, type EventFormErrors,
   REQUIRED_FIELDS, sanitizeEventField, validateEventForm, minEventDate,
@@ -21,6 +22,36 @@ const EMPTY: EventFormValues = {
 }
 
 const REQUIRED = new Set<keyof EventFormValues>(REQUIRED_FIELDS)
+
+/**
+ * Shrinks an image in the browser before upload: scales it down to at most
+ * `maxWidth` and re-encodes as JPEG, so a straight-from-phone photo becomes a
+ * small, uniform file instead of being rejected by the size cap. Never upscales;
+ * falls back to the original file if anything goes wrong.
+ */
+async function downscaleImage(file: File, maxWidth = 1600, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith('image/')) return file
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
+    const scale = Math.min(1, maxWidth / bitmap.width)
+    const w = Math.round(bitmap.width * scale)
+    const h = Math.round(bitmap.height * scale)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return file
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    bitmap.close?.()
+
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', quality))
+    if (!blob) return file
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
 
 /**
  * Admin-only "create event" form. Lives under /events so the app shell keeps the
@@ -42,6 +73,8 @@ export default function NewEventPage() {
   const [values, setValues] = useState<EventFormValues>(EMPTY)
   const [errors, setErrors] = useState<EventFormErrors>({})
   const [image, setImage] = useState<File | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // "*" markers come from the same list the validator uses, so they can't drift.
   const req = (f: keyof EventFormValues) => (REQUIRED.has(f) ? ' *' : '')
@@ -56,23 +89,43 @@ export default function NewEventPage() {
     setErrors(prev => ({ ...prev, [field]: all[field] }))
   }
 
-  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (submitting) return // guard against Enter-key re-submits while a request is in flight
+    setSubmitError(null)
+
     const all = validateEventForm(values)
     setErrors(all)
     if (Object.keys(all).length > 0) return
 
-    // TODO(api): upload `image`, build Europe/London instants from date + times,
-    // map to the `event` columns, and POST. For now just capture the draft.
-    const draft = {
-      ...values,
-      ageMin: values.ageMin ? Number(values.ageMin) : null,
-      ageMax: values.ageMax ? Number(values.ageMax) : null,
-      capacity: values.capacity ? Number(values.capacity) : null, // empty = open to all
-      price: values.price ? Number(values.price) : 0,
-      imageName: image?.name ?? null,
+    setSubmitting(true)
+    try {
+      const { data: { session } } = await createClient().auth.getSession()
+      if (!session) { setSubmitError('Your session has expired. Please log in again.'); return }
+
+      // multipart so the image file rides along with the fields. The image is
+      // downscaled in the browser first, so uploads stay small on every device.
+      const body = new FormData()
+      for (const [k, v] of Object.entries(values)) body.append(k, v)
+      if (image) body.append('image', await downscaleImage(image))
+
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body,
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok) { router.push('/events'); return }
+
+      // Field-level problems come back keyed by field; everything else is a banner.
+      if (res.status === 400 && data.fieldErrors) setErrors(data.fieldErrors)
+      setSubmitError(data.error ?? 'Could not create the event. Please try again.')
+    } catch {
+      setSubmitError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
     }
-    console.log('New event draft', draft)
   }
 
   return (
@@ -155,12 +208,25 @@ export default function NewEventPage() {
           <ImageUpload file={image} onChange={setImage} />
         </FormSection>
 
+        {submitError && (
+          <p className="text-sm text-[var(--color-error)]" role="alert">{submitError}</p>
+        )}
+
         <div className="flex gap-3">
           <div className="flex-1">
-            <Button type="button" variant="outline" onClick={() => router.push('/events')}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => router.push('/events')} disabled={submitting}>Cancel</Button>
           </div>
           <div className="flex-1">
-            <Button type="submit">Create event</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  Creating…
+                </span>
+              ) : (
+                'Create event'
+              )}
+            </Button>
           </div>
         </div>
         </form>

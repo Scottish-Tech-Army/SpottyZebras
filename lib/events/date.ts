@@ -105,6 +105,31 @@ export function londonDateKey(iso: string): string {
   return `${get('year')}-${get('month')}-${get('day')}`
 }
 
+/** How far Europe/London is from UTC at a given instant, in minutes. */
+function londonOffsetMinutes(instant: Date): number {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/London', hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    }).formatToParts(instant).map(x => [x.type, x.value]),
+  )
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
+  return Math.round((asUtc - instant.getTime()) / 60000)
+}
+
+/**
+ * A UK wall-clock date + time → the absolute instant (ISO UTC). Interpreting the
+ * input as `Europe/London` (not the runtime zone) keeps it correct through both
+ * BST and GMT. `date` is `yyyy-mm-dd`, `time` is `HH:mm`.
+ */
+export function londonInstant(date: string, time: string): string {
+  const [y, mo, d] = date.split('-').map(Number)
+  const [h, mi] = time.split(':').map(Number)
+  const guessUtc = Date.UTC(y, mo - 1, d, h, mi)
+  return new Date(guessUtc - londonOffsetMinutes(new Date(guessUtc)) * 60000).toISOString()
+}
+
 export const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
