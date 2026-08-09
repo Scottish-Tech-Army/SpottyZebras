@@ -37,6 +37,11 @@ export function startOfMonth(d: Date): Date {
   return x
 }
 
+/** Midnight of the last day of `d`'s month. */
+export function endOfMonth(d: Date): Date {
+  return startOfDay(new Date(d.getFullYear(), d.getMonth() + 1, 0))
+}
+
 /** The Sunday on or before `d`. */
 export function startOfWeek(d: Date): Date {
   const x = startOfDay(d)
@@ -108,4 +113,9 @@ export const MONTH_NAMES = [
 /** e.g. "August 2026" */
 export function monthLabel(d: Date): string {
   return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
+}
+
+/** e.g. "Aug 2026" — for narrow layouts. */
+export function monthLabelShort(d: Date): string {
+  return `${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`
 }

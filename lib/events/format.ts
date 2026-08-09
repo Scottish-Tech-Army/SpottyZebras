@@ -25,6 +25,24 @@ export function formatEventWhen(startsAt: string, endsAt: string | null): string
   return `${formatDayLabel(startsAt)} · ${range}`
 }
 
+/** A local calendar day as "Sat 15 Aug". Used for the selected-day heading;
+ *  the value is a plain Date (calendar day), so it's formatted in local time. */
+export function formatDayLabelLocal(d: Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short',
+  }).format(d)
+}
+
+/** A week span as "11 – 17 Aug" (same month) or "28 Jul – 3 Aug" (across months). */
+export function formatWeekRange(start: Date, end: Date): string {
+  const dayMonth = (d: Date) =>
+    new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' }).format(d)
+  const day = (d: Date) =>
+    new Intl.DateTimeFormat('en-GB', { day: 'numeric' }).format(d)
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+  return sameMonth ? `${day(start)} – ${dayMonth(end)}` : `${dayMonth(start)} – ${dayMonth(end)}`
+}
+
 /** "Ages 3 – 12" / "Ages 5+" / "Up to 12" / "All ages". */
 export function ageLabel(min: number | null, max: number | null): string {
   if (min != null && max != null) return `Ages ${min} – ${max}`

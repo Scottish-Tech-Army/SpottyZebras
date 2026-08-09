@@ -97,6 +97,25 @@ export const ChevronRightIcon = (p: IconProps) => (
   </SvgIcon>
 )
 
+/** "Today" — a calendar with a dot marking the current day */
+export const TodayIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="M8 2v4" />
+    <path d="M16 2v4" />
+    <rect width="18" height="18" x="3" y="4" rx="2" />
+    <path d="M3 10h18" />
+    <circle cx="12" cy="15" r="1.5" fill="currentColor" stroke="none" />
+  </SvgIcon>
+)
+
+/** Close / clear */
+export const XIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </SvgIcon>
+)
+
 /** Clock — event time */
 export const ClockIcon = (p: IconProps) => (
   <SvgIcon {...p}>
