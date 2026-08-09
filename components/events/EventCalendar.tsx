@@ -131,12 +131,12 @@ export default function EventCalendar() {
       <Card className="@container p-4 sm:p-5">
         {/* Month/year · (Today) · view toggle. Wraps to a second line only if a
             device is too narrow even after the compact form kicks in. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
           <div className="flex items-center gap-1">
             <NavButton label="Previous" onClick={() => step(-1)} hidden={prevHidden} disabled={prevDisabled}>
               <ChevronLeftIcon className="w-5 h-5" />
             </NavButton>
-            <h2 className="text-center text-lg font-bold text-[var(--color-text)] @lg:min-w-[8.5rem]">
+            <h2 className="text-center text-base font-bold text-[var(--color-text)] @lg:min-w-[8.5rem] @lg:text-lg">
               <span className="@lg:hidden">{monthLabelShort(cursor)}</span>
               <span className="hidden @lg:inline">{monthLabel(cursor)}</span>
             </h2>
@@ -266,7 +266,7 @@ function ToggleButton({ active, onClick, children }: { active: boolean; onClick:
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full px-3 py-1.5 text-sm font-semibold transition @lg:px-4 ${active ? 'seg-active' : 'seg-idle'}`}
+      className={`rounded-full px-2.5 py-1.5 text-sm font-semibold transition @lg:px-4 ${active ? 'seg-active' : 'seg-idle'}`}
     >
       {children}
     </button>

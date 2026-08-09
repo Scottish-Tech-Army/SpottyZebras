@@ -35,18 +35,16 @@ export default function DonatePage() {
 
   return (
     <div className="flex-1 flex items-start justify-center py-10 px-4">
-      <Card className="p-8 w-full max-w-lg">
-        <div className="relative flex items-center justify-center mb-6">
-          {/* Anonymous donors get a back button; from the app menu the nav replaces it. */}
-          {!loggedIn && (
-            <div className="absolute left-0">
-              <BackButton href="/" />
-            </div>
-          )}
-          <h2 className="text-3xl font-bold text-[var(--color-secondary)] text-center">Help more families</h2>
+      <div className="w-full max-w-lg">
+        {/* Title sits above the card, like the other screens. Anonymous donors get
+            a back button; from the app menu the nav replaces it. */}
+        <div className="mb-4 flex items-center gap-2">
+          {!loggedIn && <BackButton href="/" />}
+          <h1 className="text-2xl font-bold text-[var(--color-secondary)]">Donate</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <Card className="p-8">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <FormSection label="How often">
             <FrequencyToggle value={frequency} onChange={setFrequency} />
           </FormSection>
@@ -139,8 +137,9 @@ export default function DonatePage() {
           <Button type="submit" size="lg" disabled={!isFormValid || loading}>
             {loading ? 'Please wait…' : ctaLabel}
           </Button>
-        </form>
-      </Card>
+          </form>
+        </Card>
+      </div>
     </div>
   )
 }
