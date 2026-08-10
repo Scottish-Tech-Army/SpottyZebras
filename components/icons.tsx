@@ -116,6 +116,13 @@ export const PlusIcon = (p: IconProps) => (
   </SvgIcon>
 )
 
+/** Check / tick */
+export const CheckIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="M20 6 9 17l-5-5" />
+  </SvgIcon>
+)
+
 /** Close / clear */
 export const XIcon = (p: IconProps) => (
   <SvgIcon {...p}>

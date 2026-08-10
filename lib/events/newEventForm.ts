@@ -1,4 +1,4 @@
-import { ymd } from './date'
+import { addMonths, endOfMonth, startOfMonth, ymd } from './date'
 
 /** The create-event form's raw (string) values. */
 export interface EventFormValues {
@@ -16,7 +16,7 @@ export interface EventFormValues {
 
 export type EventFormErrors = Partial<Record<keyof EventFormValues, string>>
 
-/** Fields that must be filled in — drives both the "*" markers and validation. */
+/** Fields that must be filled in - drives both the "*" markers and validation. */
 export const REQUIRED_FIELDS = ['title', 'description', 'location', 'date', 'startTime'] as const
 
 export const MAX_AGE = 18
@@ -43,8 +43,12 @@ export function sanitizeEventField(field: keyof EventFormValues, v: string): str
   }
 }
 
-/** Today (local) as yyyy-mm-dd — the earliest allowed event date. */
+/** Today (local) as yyyy-mm-dd - the earliest allowed event date. */
 export const minEventDate = (): string => ymd(new Date())
+
+/** The latest allowed event date: the end of the 6-month window (this month plus
+ *  the next 5), matching the calendar's horizon. */
+export const maxEventDate = (): string => ymd(endOfMonth(addMonths(startOfMonth(new Date()), 5)))
 
 const REQUIRED_MSG: Record<(typeof REQUIRED_FIELDS)[number], string> = {
   title:       'Please enter a title.',
@@ -61,9 +65,13 @@ export function validateEventForm(v: EventFormValues): EventFormErrors {
     if (!v[f].trim()) e[f] = REQUIRED_MSG[f]
   }
 
-  // Events are always upcoming — the date can't be earlier than today.
+  // Events are always upcoming - the date can't be earlier than today...
   if (v.date && !e.date && v.date < minEventDate()) {
     e.date = 'The date can’t be in the past.'
+  }
+  // ...nor more than 6 months ahead (the calendar's window).
+  if (v.date && !e.date && v.date > maxEventDate()) {
+    e.date = 'The date can’t be more than 6 months ahead.'
   }
 
   // If an end time is given, it must come after the start.

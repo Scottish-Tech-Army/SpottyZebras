@@ -19,9 +19,9 @@ export function formatDayLabel(iso: string): string {
   }).format(new Date(iso))
 }
 
-/** "Sat 15 Aug · 11:00–15:00" — the end time is dropped when absent. */
+/** "Sat 15 Aug · 11:00–15:00" - the end time is dropped when absent. */
 export function formatEventWhen(startsAt: string, endsAt: string | null): string {
-  const range = endsAt ? `${formatTime(startsAt)}–${formatTime(endsAt)}` : formatTime(startsAt)
+  const range = endsAt ? `${formatTime(startsAt)} - ${formatTime(endsAt)}` : formatTime(startsAt)
   return `${formatDayLabel(startsAt)} · ${range}`
 }
 
@@ -49,6 +49,12 @@ export function ageLabel(min: number | null, max: number | null): string {
   if (min != null) return `Ages ${min}+`
   if (max != null) return `Up to ${max}`
   return 'All ages'
+}
+
+/** "1 spot left" / "3 spots left" / "Fully booked". */
+export function spotsLabel(spotsLeft: number): string {
+  if (spotsLeft <= 0) return 'Fully booked'
+  return spotsLeft === 1 ? '1 spot left' : `${spotsLeft} spots left`
 }
 
 /** "Free" when price is 0, otherwise "£8" / "£8.50". */

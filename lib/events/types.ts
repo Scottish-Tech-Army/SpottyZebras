@@ -15,5 +15,6 @@ export interface EventItem {
   ageMax: number | null
   price: number             // GBP; 0 = free
   maxCapacity: number | null // null = no limit
+  spotsLeft: number | null   // remaining capacity (maxCapacity − bookings); null = no limit
   status: string
 }
