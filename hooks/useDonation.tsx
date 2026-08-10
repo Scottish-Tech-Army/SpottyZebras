@@ -40,8 +40,10 @@ function useDonationState() {
   const [amount, setAmountRaw] = useState('5')
   const [amountTouched, setAmountTouched] = useState(false)
   const [giftAid, setGiftAid] = useState(true)
-  const [name, setName] = useState('')
-  const [nameTouched, setNameTouched] = useState(false)
+  const [firstName, setFirstName] = useState('')
+  const [firstNameTouched, setFirstNameTouched] = useState(false)
+  const [lastName, setLastName] = useState('')
+  const [lastNameTouched, setLastNameTouched] = useState(false)
   const [email, setEmailRaw] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
   // Gift Aid address (HMRC requires the donor's home address to claim Gift Aid)
@@ -83,7 +85,8 @@ function useDonationState() {
         if (!res.ok) return
         const p = await res.json()
         // Only fill fields the donor hasn't already started editing.
-        if (p.fullName)     setName(prev => prev || p.fullName)
+        if (p.firstName)    setFirstName(prev => prev || p.firstName)
+        if (p.lastName)     setLastName(prev => prev || p.lastName)
         if (p.email)        setEmailRaw(prev => prev || p.email)
         if (p.addressLine1) setAddressLine1(prev => prev || p.addressLine1)
         if (p.addressLine2) setAddressLine2(prev => prev || p.addressLine2)
@@ -101,7 +104,8 @@ function useDonationState() {
     setAmountRaw('5')
     setAmountTouched(false)
     setGiftAid(true)
-    setName(''); setNameTouched(false)
+    setFirstName(''); setFirstNameTouched(false)
+    setLastName(''); setLastNameTouched(false)
     setEmail(''); setEmailTouched(false)
     setAddressLine1(''); setAddressLine1Touched(false)
     setAddressLine2('')
@@ -120,8 +124,9 @@ function useDonationState() {
   // What the charity will later reclaim, for display only (never charged).
   const giftAidBonus = giftAid ? Math.round(parsedAmount * 0.25 * 100) / 100 : 0
 
-  const amountErr   = getAmountError(amount)
-  const nameErr     = name.trim() === '' ? 'Please enter your full name.' : ''
+  const amountErr    = getAmountError(amount)
+  const firstNameErr = firstName.trim() === '' ? 'Please enter your first name.' : ''
+  const lastNameErr  = lastName.trim() === '' ? 'Please enter your last name.' : ''
   const emailErr    = email.trim() === ''
     ? 'Please enter your email.'
     : !isEmail(email) ? 'Please enter a valid email.' : ''
@@ -134,7 +139,7 @@ function useDonationState() {
       ? 'Please enter your postcode.'
       : !isPostcode(postcode) ? 'Please enter a valid UK postcode.' : ''
 
-  const isFormValid = !amountErr && !nameErr && !emailErr && !addressLine1Err && !postcodeErr
+  const isFormValid = !amountErr && !firstNameErr && !lastNameErr && !emailErr && !addressLine1Err && !postcodeErr
 
   const ctaLabel = finalAmount > 0
     ? `Continue to payment · £${finalAmount.toFixed(2)}${frequency === 'monthly' ? '/mo' : ''}`
@@ -156,7 +161,8 @@ function useDonationState() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amountPence: Math.round(finalAmount * 100),
-          name,
+          firstName,
+          lastName,
           email,
           giftAid,
           // Address only sent when claiming Gift Aid
@@ -174,7 +180,7 @@ function useDonationState() {
         clientSecret: data.clientSecret,
         amount: finalAmount,
         frequency,
-        name,
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
         email,
       }))
 
@@ -191,7 +197,8 @@ function useDonationState() {
     amount, setAmount,
     amountTouched, setAmountTouched,
     giftAid, setGiftAid,
-    name, setName, nameTouched, setNameTouched,
+    firstName, setFirstName, firstNameTouched, setFirstNameTouched,
+    lastName, setLastName, lastNameTouched, setLastNameTouched,
     email, setEmail, emailTouched, setEmailTouched,
     addressLine1, setAddressLine1, addressLine1Touched, setAddressLine1Touched,
     addressLine2, setAddressLine2,
@@ -203,7 +210,7 @@ function useDonationState() {
     giftAidBonus,
     ctaLabel,
     isFormValid,
-    amountErr, nameErr, emailErr, addressLine1Err, postcodeErr,
+    amountErr, firstNameErr, lastNameErr, emailErr, addressLine1Err, postcodeErr,
     handleSubmit,
     reset,
   }

@@ -4,7 +4,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST(request: Request) {
   const {
-    amountPence, name, email, giftAid,
+    amountPence, firstName, lastName, email, giftAid,
     addressLine1, addressLine2, city, postcode,
   } = await request.json()
 
@@ -20,7 +20,8 @@ export async function POST(request: Request) {
       receipt_email: email || undefined,
       metadata: {
         type: 'donation',
-        donor_name: name,
+        donor_first_name: firstName ?? '',
+        donor_last_name: lastName ?? '',
         donor_email: email,
         gift_aid: giftAid ? 'yes' : 'no',
         // Address only populated when claiming Gift Aid

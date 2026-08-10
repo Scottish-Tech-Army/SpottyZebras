@@ -17,7 +17,8 @@ export default function DonatePage() {
     amount, setAmount,
     amountTouched, setAmountTouched,
     giftAid, setGiftAid,
-    name, setName, nameTouched, setNameTouched,
+    firstName, setFirstName, firstNameTouched, setFirstNameTouched,
+    lastName, setLastName, lastNameTouched, setLastNameTouched,
     email, setEmail, emailTouched, setEmailTouched,
     addressLine1, setAddressLine1, addressLine1Touched, setAddressLine1Touched,
     addressLine2, setAddressLine2,
@@ -28,7 +29,7 @@ export default function DonatePage() {
     giftAidBonus,
     isFormValid,
     ctaLabel,
-    amountErr, nameErr, emailErr, addressLine1Err, postcodeErr,
+    amountErr, firstNameErr, lastNameErr, emailErr, addressLine1Err, postcodeErr,
     handleSubmit,
   } = useDonation()
   const { loggedIn } = useAppChrome()
@@ -68,15 +69,26 @@ export default function DonatePage() {
           <GiftAidCard checked={giftAid} onChange={setGiftAid} bonus={giftAidBonus} />
 
           <FormSection label="Your details">
-            <TextField
-              label="Full name *"
-              value={name}
-              onChange={setName}
-              onBlur={() => setNameTouched(true)}
-              error={nameTouched ? nameErr : undefined}
-              required
-              autoComplete="name"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <TextField
+                label="First name *"
+                value={firstName}
+                onChange={setFirstName}
+                onBlur={() => setFirstNameTouched(true)}
+                error={firstNameTouched ? firstNameErr : undefined}
+                required
+                autoComplete="given-name"
+              />
+              <TextField
+                label="Last name *"
+                value={lastName}
+                onChange={setLastName}
+                onBlur={() => setLastNameTouched(true)}
+                error={lastNameTouched ? lastNameErr : undefined}
+                required
+                autoComplete="family-name"
+              />
+            </div>
             <TextField
               label="Email (for your receipt) *"
               type="email"
