@@ -1,15 +1,31 @@
 import { ClockIcon, MapPinIcon, ImageIcon } from '@/components/icons'
-import { ageLabel, formatEventWhen, priceLabel } from '@/lib/events/format'
+import { ageLabel, formatEventWhen, priceLabel, spotsLabel } from '@/lib/events/format'
 import type { EventItem } from '@/lib/events/types'
 
 /**
  * One event, responsive: on phones the image sits on the left of the row; from
  * `lg` up the card stacks with the image on top. Same image either way — only
- * its placement changes with screen size.
+ * its placement changes with screen size. When `onSelect` is given the whole
+ * card acts as a button (opens the RSVP dialog for parents).
  */
-export function EventCard({ event }: { event: EventItem }) {
+export function EventCard({ event, onSelect }: { event: EventItem; onSelect?: () => void }) {
+  const clickable = !!onSelect
   return (
-    <article className="flex overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] lg:flex-col">
+    <article
+      onClick={onSelect}
+      onKeyDown={
+        clickable
+          ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect!() } }
+          : undefined
+      }
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      className={`flex overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] lg:flex-col ${
+        clickable
+          ? 'cursor-pointer transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]'
+          : ''
+      }`}
+    >
       {/* Image — left on phones, top on large screens */}
       <div className="relative w-2/5 shrink-0 self-stretch bg-[var(--color-sand)] lg:w-full lg:self-auto lg:aspect-[16/9]">
         {event.imageUrl ? (
@@ -45,9 +61,32 @@ export function EventCard({ event }: { event: EventItem }) {
             {ageLabel(event.ageMin, event.ageMax)}
           </span>
           <PricePill price={event.price} />
+          {event.spotsLeft != null && <SpotsTag spotsLeft={event.spotsLeft} />}
         </div>
       </div>
     </article>
+  )
+}
+
+/** Availability: a blue "N spots left" chip, or a muted "Fully booked" one. */
+function SpotsTag({ spotsLeft }: { spotsLeft: number }) {
+  if (spotsLeft <= 0) {
+    return (
+      <span
+        className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-[var(--color-text-muted)]"
+        style={{ backgroundColor: 'var(--color-sand)' }}
+      >
+        Fully booked
+      </span>
+    )
+  }
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-[var(--color-secondary)]"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--color-secondary) 14%, white)' }}
+    >
+      {spotsLabel(spotsLeft)}
+    </span>
   )
 }
 

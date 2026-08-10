@@ -56,6 +56,16 @@ export async function GET(request: Request) {
     }
   }
 
+  // Count bookings per event so cards can show spots remaining.
+  const eventIds = (rows ?? []).map(r => r.id)
+  const bookedCount = new Map<string, number>()
+  if (eventIds.length > 0) {
+    const { data: bookingRows } = await admin.from('booking').select('event_id').in('event_id', eventIds)
+    for (const b of bookingRows ?? []) {
+      bookedCount.set(b.event_id, (bookedCount.get(b.event_id) ?? 0) + 1)
+    }
+  }
+
   const events = (rows ?? []).map(r => ({
     id: r.id,
     title: r.title,
@@ -68,6 +78,7 @@ export async function GET(request: Request) {
     ageMax: r.age_range_max,
     price: Number(r.price) || 0,
     maxCapacity: r.max_capacity,
+    spotsLeft: r.max_capacity == null ? null : Math.max(0, r.max_capacity - (bookedCount.get(r.id) ?? 0)),
     status: r.status ?? 'open',
   }))
 

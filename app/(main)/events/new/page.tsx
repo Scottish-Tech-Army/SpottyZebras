@@ -13,7 +13,7 @@ import { useAppChrome } from '@/components/AppUserContext'
 import { createClient } from '@/lib/supabase'
 import {
   type EventFormValues, type EventFormErrors,
-  REQUIRED_FIELDS, sanitizeEventField, validateEventForm, minEventDate,
+  REQUIRED_FIELDS, sanitizeEventField, validateEventForm, minEventDate, maxEventDate,
 } from '@/lib/events/newEventForm'
 
 const EMPTY: EventFormValues = {
@@ -164,6 +164,7 @@ export default function NewEventPage() {
             onBlur={() => blur('date')}
             error={errors.date}
             min={minEventDate()}
+            max={maxEventDate()}
           />
           <div className="grid grid-cols-2 gap-3">
             <TextField
