@@ -9,8 +9,9 @@
 - app_user: id, full_name, role ('parent'|'admin'|'super_admin'), is_active, created_at, updated_at
 - parent_profile: user_id (FK), full_name, email, phone, address_line_1, address_line_2, town, postcode, second_carer_name, second_carer_email, second_carer_phone, second_carer_address_line_1, second_carer_address_line_2, second_carer_town, second_carer_postcode, emergency_contact_name, emergency_contact_phone, referral_source, created_at, updated_at
 - child: parent_id (FK), full_name, date_of_birth, address_line_1, address_line_2, town, postcode, additional_support_needs, allergies, photo_consent
-- event: created_by (FK), title, description, start_time, end_time, location, image_url, age_range_min/max, price (0=free), max_capacity, status
-- booking: event_id (FK), child_id (FK), parent_id (FK), status ('confirmed')
+- event: created_by (FK), title, description, start_time/end_time (timestamptz), location, image_url (Storage path), age_range_min/max, price (0=free), max_capacity, status
+- booking: event_id (FK), child_id (FK), parent_id (FK), status ('confirmed'), payment_id (FK, nullable — null for free bookings)
+- payment: id, type ('donation'|'event_booking'), status ('succeeded'|'refunded'|'failed'|'pending'), amount (numeric, £), currency, stripe_payment_intent_id (unique), stripe_invoice_id, stripe_subscription_id, paid_at; event side: parent_id (FK), event_id (FK), event_payer_name/email; donation side: is_gift_aid, donor_first_name, donor_last_name, donor_email, donor_address_line_1/2, donor_town, donor_postcode. Written by Stripe webhook, idempotent on stripe_payment_intent_id. RLS on (service-role only).
 
 ## Auth Flow
 - Supabase Auth handles email + password (auth.users internal)
@@ -25,3 +26,6 @@
 - Booking DELETE = cancellation (no cancelled status)
 - Up to 4 children per parent (enforced in app code)
 - Admins manage data via Supabase Studio in phase 1
+- Payments: one `payment` ledger for both donations & paid bookings; written by the Stripe webhook (not at checkout), idempotent on stripe_payment_intent_id, retried by Stripe on failure
+- Gift Aid inlined on the donation row (is_gift_aid + donor_* snapshot at donation time); recurring donations copy Gift Aid from Stripe subscription metadata onto each monthly invoice's row
+- Xero: Stripe → Xero via a connector (no app code); the `payment` table is the app's own record + the source for the HMRC Gift Aid claim export

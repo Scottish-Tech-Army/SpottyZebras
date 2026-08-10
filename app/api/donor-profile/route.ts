@@ -26,8 +26,15 @@ export async function POST(request: Request) {
       .maybeSingle(),
   ])
 
+  // The form now uses first/last; profiles still store a single full_name, so
+  // split it best-effort (first token = first name, the rest = last name).
+  const parts = (appUser?.full_name ?? '').trim().split(/\s+/).filter(Boolean)
+  const firstName = parts[0] ?? ''
+  const lastName = parts.slice(1).join(' ')
+
   return Response.json({
-    fullName: appUser?.full_name ?? null,
+    firstName: firstName || null,
+    lastName: lastName || null,
     email: profile?.email ?? userData.user.email ?? null,
     addressLine1: profile?.address_line_1 ?? null,
     addressLine2: profile?.address_line_2 ?? null,

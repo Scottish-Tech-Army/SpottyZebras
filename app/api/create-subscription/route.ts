@@ -16,9 +16,12 @@ async function getDonationProductId(): Promise<string> {
 
 export async function POST(request: Request) {
   const {
-    amountPence, name, email, giftAid,
+    amountPence, firstName, lastName, email, giftAid,
     addressLine1, addressLine2, city, postcode,
   } = await request.json()
+
+  // Stripe's Customer takes a single display name for receipts/invoices.
+  const name = [firstName, lastName].map((s: string) => (s ?? '').trim()).filter(Boolean).join(' ')
 
   if (!amountPence || amountPence < 100) {
     return Response.json({ error: 'Amount must be at least £1' }, { status: 400 })
@@ -69,7 +72,8 @@ export async function POST(request: Request) {
     expand: ['latest_invoice.confirmation_secret'],
     metadata: {
       type: 'donation',
-      donor_name: name,
+      donor_first_name: firstName ?? '',
+      donor_last_name: lastName ?? '',
       donor_email: email,
       gift_aid: giftAid ? 'yes' : 'no',
       address_line1: addressLine1 || '',
