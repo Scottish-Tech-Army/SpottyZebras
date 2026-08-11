@@ -105,3 +105,54 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true, booked: result?.child_ids ?? [] })
 }
+
+/**
+ * Cancels a single confirmed booking (a child's place at an event). Body:
+ *   { bookingId: string }
+ *
+ * Only the parent who owns the booking can cancel it, and only for FREE events —
+ * paid bookings can't be cancelled here (no self-service refunds for now). Deleting
+ * the row frees the spot again.
+ */
+export async function DELETE(request: Request) {
+  const authHeader = request.headers.get('authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  if (!token) return fail('Missing token', 401)
+
+  const admin = createAdminClient()
+  const { data: userData, error: authErr } = await admin.auth.getUser(token)
+  if (authErr || !userData?.user) return fail('Invalid session', 401)
+  const uid = userData.user.id
+
+  let body: { bookingId?: string }
+  try {
+    body = await request.json()
+  } catch {
+    return fail('Invalid request.', 400)
+  }
+  if (!body.bookingId) return fail('Missing booking.', 400)
+
+  const { data: booking } = await admin
+    .from('booking')
+    .select('id, parent_id, event_id, status')
+    .eq('id', body.bookingId)
+    .maybeSingle()
+  if (!booking) return fail('Booking not found.', 404)
+  if (booking.parent_id !== uid) return fail('That booking isn’t yours.', 403)
+  if (booking.status !== 'confirmed') return fail('That booking can’t be cancelled.', 400)
+
+  const { data: event } = await admin
+    .from('event')
+    .select('price')
+    .eq('id', booking.event_id)
+    .maybeSingle()
+  if (Number(event?.price) > 0) return fail('Paid bookings can’t be cancelled here.', 400)
+
+  const { error: delErr } = await admin.from('booking').delete().eq('id', booking.id)
+  if (delErr) {
+    console.error('Booking cancel failed:', delErr)
+    return fail('Could not cancel the booking. Please try again.', 500)
+  }
+
+  return Response.json({ ok: true })
+}
