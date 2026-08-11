@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { CheckIcon } from '@/components/icons'
 import { isAgeEligible } from '@/lib/events/eligibility'
@@ -23,6 +24,10 @@ function formatPounds(n: number): string {
  * checkbox. Only children inside the event's age range can be selected. Free
  * events show "RSVP"; paid events show "Pay £X & RSVP". On confirm we POST the
  * selected children to /api/bookings (which re-checks ownership, price, age).
+ *
+ * Paid events don't book here — they create a PaymentIntent via /api/event-payment
+ * and hand off to the /events/payment card screen; the booking is written by the
+ * Stripe webhook once the payment settles.
  */
 export default function EventRsvpDialog({
   event, kids, bookedIds, loading, error, onBooked, onClose,
@@ -35,6 +40,7 @@ export default function EventRsvpDialog({
   onBooked: (childIds: string[]) => void
   onClose: () => void
 }) {
+  const router = useRouter()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -45,8 +51,8 @@ export default function EventRsvpDialog({
   const primaryLabel = submitting
     ? 'Saving…'
     : isPaid
-      ? `Pay ${formatPounds(total)} & save us a spot`
-      : 'Save us a spot'
+      ? `Pay ${formatPounds(total)} & book your spot!`
+      : 'Book your spot!'
 
   // Availability guard (the server enforces this too).
   const spotsLeft = event.spotsLeft
@@ -74,18 +80,41 @@ export default function EventRsvpDialog({
     try {
       const { data: { session } } = await createClient().auth.getSession()
       if (!session) throw new Error('no session')
+      const headers = { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }
+      const childIds = [...selected]
+
+      // Paid events: create the PaymentIntent and hand off to the card screen.
+      // The booking is written by the webhook once payment settles.
+      if (isPaid) {
+        const res = await fetch('/api/event-payment', {
+          method: 'POST', headers, body: JSON.stringify({ eventId: event.id, childIds }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) { setSubmitError(data.error ?? 'Could not start the payment. Please try again.'); setSubmitting(false); return }
+        sessionStorage.setItem('sz_event_payment', JSON.stringify({
+          clientSecret: data.clientSecret,
+          paymentIntentId: data.paymentIntentId,
+          amount: data.amount,
+          eventId: event.id,
+          eventTitle: event.title,
+          childIds: data.childIds ?? childIds,
+          holdExpiresAt: data.holdExpiresAt,
+        }))
+        router.push('/events/payment') // stay in the submitting state while we navigate
+        return
+      }
+
+      // Free events: book directly.
       const res = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId: event.id, childIds: [...selected] }),
+        method: 'POST', headers, body: JSON.stringify({ eventId: event.id, childIds }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) { setSubmitError(data.error ?? 'Could not complete the booking. Please try again.'); return }
-      onBooked([...selected]) // tell the calendar so these show "Going" next time
+      if (!res.ok) { setSubmitError(data.error ?? 'Could not complete the booking. Please try again.'); setSubmitting(false); return }
+      onBooked(childIds) // tell the calendar so these show "Going" next time
       setDone(true)
+      setSubmitting(false)
     } catch {
       setSubmitError('Something went wrong. Please try again.')
-    } finally {
       setSubmitting(false)
     }
   }

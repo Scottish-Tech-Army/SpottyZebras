@@ -10,11 +10,13 @@ interface TextFieldProps {
   error?: string
   required?: boolean
   autoComplete?: string
+  maxLength?: number
 }
 
 export function TextField({
   label, value, onChange, onBlur,
   type = 'text', placeholder, prefix, hint, error, required, autoComplete,
+  maxLength,
 }: TextFieldProps) {
   const inputClass = 'bg-transparent focus:outline-none text-sm text-[var(--color-text)]'
   const borderClass = error ? 'border-[var(--color-error)]' : 'border-[var(--color-border-input)]'
@@ -33,6 +35,7 @@ export function TextField({
             placeholder={placeholder}
             required={required}
             autoComplete={autoComplete}
+            maxLength={maxLength}
             className={`flex-1 pr-3 py-2 ${inputClass}`}
           />
         </div>
@@ -45,6 +48,7 @@ export function TextField({
           placeholder={placeholder}
           required={required}
           autoComplete={autoComplete}
+          maxLength={maxLength}
           className={`w-full px-3 py-2 border rounded-[var(--radius-sm)] bg-white focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] text-sm text-[var(--color-text)] ${borderClass}`}
         />
       )}
