@@ -5,10 +5,10 @@
 
 const LONDON = 'Europe/London'
 
-/** "11:00" (24h, UK local). */
+/** "11:00 am" (12h am/pm, UK local) */
 export function formatTime(iso: string): string {
   return new Intl.DateTimeFormat('en-GB', {
-    timeZone: LONDON, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+    timeZone: LONDON, hour: 'numeric', minute: '2-digit', hour12: true,
   }).format(new Date(iso))
 }
 
