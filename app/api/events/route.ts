@@ -56,13 +56,22 @@ export async function GET(request: Request) {
     }
   }
 
-  // Count bookings per event so cards can show spots remaining.
+  // Count spots taken per event so cards can show spots remaining. A spot is taken
+  // when it's confirmed OR held by an in-flight payment (pending, not yet expired) —
+  // so a held seat correctly shows as unavailable while someone's checking out.
   const eventIds = (rows ?? []).map(r => r.id)
   const bookedCount = new Map<string, number>()
   if (eventIds.length > 0) {
-    const { data: bookingRows } = await admin.from('booking').select('event_id').in('event_id', eventIds)
+    const { data: bookingRows } = await admin
+      .from('booking')
+      .select('event_id, status, hold_expires_at')
+      .in('event_id', eventIds)
+    const now = Date.now()
     for (const b of bookingRows ?? []) {
-      bookedCount.set(b.event_id, (bookedCount.get(b.event_id) ?? 0) + 1)
+      const active =
+        b.status === 'confirmed' ||
+        (b.status === 'pending' && (!b.hold_expires_at || new Date(b.hold_expires_at).getTime() > now))
+      if (active) bookedCount.set(b.event_id, (bookedCount.get(b.event_id) ?? 0) + 1)
     }
   }
 

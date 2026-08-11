@@ -19,10 +19,13 @@ export async function GET(request: Request) {
   const { data: userData, error: authErr } = await admin.auth.getUser(token)
   if (authErr || !userData?.user) return fail('Invalid session', 401)
 
+  // Only confirmed bookings count as "Going" — a pending hold (an in-flight paid
+  // checkout) isn't a booking until the payment settles.
   const { data: rows, error: qErr } = await admin
     .from('booking')
     .select('event_id, child_id')
     .eq('parent_id', userData.user.id)
+    .eq('status', 'confirmed')
   if (qErr) {
     console.error('Bookings query failed:', qErr)
     return fail('Could not load bookings.', 500)
@@ -83,46 +86,22 @@ export async function POST(request: Request) {
   )
   if (ineligible) return fail('A selected child isn’t eligible for this event.', 400)
 
-  // Skip children already booked, so a repeat RSVP doesn't duplicate.
-  const { data: existing } = await admin
-    .from('booking')
-    .select('child_id')
-    .eq('event_id', eventId)
-    .in('child_id', childIds)
-  const already = new Set((existing ?? []).map(b => b.child_id))
-  const toBook = childIds.filter(id => !already.has(id))
-
-  // Enforce capacity (when the event has one). Count every booking, then make
-  // sure the NEW ones still fit. (Small race window at this scale — acceptable.)
-  if (event.max_capacity != null && toBook.length > 0) {
-    const { count } = await admin
-      .from('booking')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-    const remaining = event.max_capacity - (count ?? 0)
-    if (toBook.length > remaining) {
-      return fail(
-        remaining <= 0
-          ? 'This event is now full.'
-          : `Only ${remaining} spot${remaining === 1 ? '' : 's'} left for this event.`,
-        409,
-      )
-    }
+  // Book atomically: the DB function locks the event row, counts spots already
+  // taken (confirmed + live holds), and inserts only if there's room — so two
+  // parents can't oversell a free event either. Children already booked are skipped.
+  const { data: result, error: rpcErr } = await admin.rpc('book_event_spots', {
+    p_event_id: eventId,
+    p_parent_id: uid,
+    p_child_ids: childIds,
+    p_status: 'confirmed',
+    p_hold_minutes: null,
+    p_payment_id: null,
+  })
+  if (rpcErr) {
+    console.error('Booking failed:', rpcErr)
+    return fail('Could not complete the booking. Please try again.', 500)
   }
+  if (result?.full) return fail('This event is now full.', 409)
 
-  if (toBook.length > 0) {
-    const rows = toBook.map(child_id => ({
-      event_id: eventId,
-      child_id,
-      parent_id: uid,
-      status: 'confirmed',
-    }))
-    const { error: insErr } = await admin.from('booking').insert(rows)
-    if (insErr) {
-      console.error('Booking insert failed:', insErr)
-      return fail('Could not complete the booking. Please try again.', 500)
-    }
-  }
-
-  return Response.json({ ok: true, booked: toBook, alreadyBooked: [...already] })
+  return Response.json({ ok: true, booked: result?.child_ids ?? [] })
 }

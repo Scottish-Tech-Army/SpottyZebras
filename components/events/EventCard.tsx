@@ -42,7 +42,7 @@ export function EventCard({ event, onSelect }: { event: EventItem; onSelect?: ()
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
         <div className="flex flex-col gap-1">
           <h3 className="font-bold leading-snug text-[var(--color-secondary)]">{event.title}</h3>
-          <p className="line-clamp-3 text-sm text-[var(--color-text-muted)]">{event.description}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{event.description}</p>
         </div>
 
         <div className="flex flex-col gap-1.5 text-sm text-[var(--color-text-secondary)]">

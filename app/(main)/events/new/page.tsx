@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase'
 import {
   type EventFormValues, type EventFormErrors,
   REQUIRED_FIELDS, sanitizeEventField, validateEventForm, minEventDate, maxEventDate,
+  TITLE_MAX, DESCRIPTION_MAX,
 } from '@/lib/events/newEventForm'
 
 const EMPTY: EventFormValues = {
@@ -145,6 +146,8 @@ export default function NewEventPage() {
             onBlur={() => blur('title')}
             error={errors.title}
             placeholder="e.g. Messy art afternoon"
+            maxLength={TITLE_MAX}
+            hint={`Maximum ${TITLE_MAX} characters`}
           />
           <TextArea
             label={`Description${req('description')}`}
@@ -153,6 +156,8 @@ export default function NewEventPage() {
             onBlur={() => blur('description')}
             error={errors.description}
             placeholder="What happens at this event?"
+            maxLength={DESCRIPTION_MAX}
+            hint={`Maximum ${DESCRIPTION_MAX} characters`}
           />
         </FormSection>
 
@@ -238,7 +243,7 @@ export default function NewEventPage() {
 
 /** Multi-line field, styled to match TextField (which is single-line only). */
 function TextArea({
-  label, value, onChange, onBlur, error, placeholder,
+  label, value, onChange, onBlur, error, placeholder, hint, maxLength,
 }: {
   label: string
   value: string
@@ -246,6 +251,8 @@ function TextArea({
   onBlur?: () => void
   error?: string
   placeholder?: string
+  hint?: string
+  maxLength?: number
 }) {
   const borderClass = error ? 'border-[var(--color-error)]' : 'border-[var(--color-border-input)]'
   return (
@@ -256,10 +263,12 @@ function TextArea({
         onChange={e => onChange(e.target.value)}
         onBlur={onBlur}
         placeholder={placeholder}
+        maxLength={maxLength}
         rows={4}
         className={`w-full resize-y rounded-[var(--radius-sm)] border bg-white px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-focus)] ${borderClass}`}
       />
       {error && <p className="mt-1 text-xs text-[var(--color-error)]">{error}</p>}
+      {!error && hint && <p className="mt-1 text-xs text-[var(--color-text-muted)]">{hint}</p>}
     </div>
   )
 }

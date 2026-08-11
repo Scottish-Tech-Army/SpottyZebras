@@ -11,8 +11,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
  * idempotent on stripe_payment_intent_id, so Stripe's automatic retries (and any
  * duplicate deliveries) can never double-record.
  *
- * - One-off donations (`payment_intent.succeeded`): donor details are on the
- *   PaymentIntent metadata (set in create-payment-intent), so no extra lookups.
+ * - One-off donations (`payment_intent.succeeded`, type='donation'): donor details
+ *   are on the PaymentIntent metadata (set in create-payment-intent), no lookups.
+ * - Paid event bookings (`payment_intent.succeeded`, type='event_booking'): the PI
+ *   metadata carries the event, parent and children; we write the payment row and
+ *   the confirmed booking rows here (never at checkout), so this is the only writer.
  * - Recurring donations (`invoice_payment.paid`): the event gives the PI id +
  *   amount; donor details live on the subscription, so we resolve
  *   invoice → subscription to read them. Fires for the first charge and every
@@ -40,7 +43,9 @@ export async function POST(request: Request) {
 
   try {
     if (event.type === 'payment_intent.succeeded') {
-      await recordOneOffDonation(event.data.object)
+      const pi = event.data.object
+      if (pi.metadata?.type === 'event_booking') await recordEventBooking(pi)
+      else await recordOneOffDonation(pi)
     } else if (event.type === 'invoice_payment.paid') {
       await recordRecurringDonation(event.data.object)
     }
@@ -83,6 +88,52 @@ async function recordOneOffDonation(pi: Stripe.PaymentIntent) {
     .from('payment')
     .upsert(row, { onConflict: 'stripe_payment_intent_id', ignoreDuplicates: true })
   if (error) throw error
+}
+
+/** Writes a paid event booking: one payment row, then confirms the spots the
+ *  parent held at checkout (flips their pending bookings to confirmed, linked by
+ *  payment_id). Idempotent — the payment upserts on its PaymentIntent id, and
+ *  confirm_held_booking only touches this parent's rows, so retries/duplicate
+ *  deliveries can't double-record or double-book. */
+async function recordEventBooking(pi: Stripe.PaymentIntent) {
+  const md = pi.metadata ?? {}
+  const eventId = md.event_id
+  const parentId = md.parent_id
+  const childIds = (md.child_ids ?? '').split(',').map(s => s.trim()).filter(Boolean)
+  if (!eventId || !parentId || childIds.length === 0) return
+
+  const admin = createAdminClient()
+
+  // Upsert the payment ledger row and get its id (to link the bookings).
+  const { data: payment, error: payErr } = await admin
+    .from('payment')
+    .upsert(
+      {
+        type: 'event_booking',
+        status: 'succeeded',
+        amount: (pi.amount_received ?? pi.amount) / 100, // Stripe pence → pounds
+        currency: pi.currency,
+        stripe_payment_intent_id: pi.id,
+        parent_id: parentId,
+        event_id: eventId,
+        event_payer_name: md.payer_name || null,
+        event_payer_email: md.payer_email || pi.receipt_email || null,
+        paid_at: new Date(pi.created * 1000).toISOString(),
+      },
+      { onConflict: 'stripe_payment_intent_id' },
+    )
+    .select('id')
+    .single()
+  if (payErr) throw payErr
+
+  // Turn the held (pending) spots into confirmed bookings, attaching the payment.
+  const { error: rpcErr } = await admin.rpc('confirm_held_booking', {
+    p_event_id: eventId,
+    p_parent_id: parentId,
+    p_child_ids: childIds,
+    p_payment_id: payment.id,
+  })
+  if (rpcErr) throw rpcErr
 }
 
 /** Writes a recurring-donation payment row from a paid invoice payment. The donor
