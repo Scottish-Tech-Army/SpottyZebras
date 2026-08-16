@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { ChevronLeftIcon, ChevronRightIcon, TodayIcon, XIcon } from '@/components/icons'
 import { EventCard } from '@/components/events/EventCard'
-import EventRsvpDialog, { type RsvpChild } from '@/components/events/EventRsvpDialog'
-import { useAppChrome } from '@/components/AppUserContext'
 import { createClient } from '@/lib/supabase'
 import type { EventItem } from '@/lib/events/types'
 import { formatDayLabelLocal, formatWeekRange } from '@/lib/events/format'
@@ -14,35 +12,22 @@ import {
   monthLabelShort, monthMatrix, startOfMonth, startOfWeek, weekDays, ymd,
 } from '@/lib/events/date'
 
-type View = 'week' | 'month'
+import { calendarState as retained, type CalendarView as View } from '@/lib/events/calendarState'
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
-// Stable empty set for events with no bookings (avoids a new Set() each render).
-const EMPTY_IDS: ReadonlySet<string> = new Set()
 
 /**
  * The events-screen calendar. Two views (week / month) that expand in the same
  * place; today is highlighted, days before today can't be selected, and days
- * that have events carry a dot. Events are mocked for now.
+ * that have events carry a dot. Each event card links to its details screen.
  */
 export default function EventCalendar() {
-  const { role } = useAppChrome()
-  const isParent = role === 'parent'
-
   // `today` is fixed for the life of the screen so comparisons stay stable.
   const today = useMemo(() => new Date(), [])
 
   // Events come from the API (today → next 6 months). `null` means still loading.
   const [events, setEvents] = useState<EventItem[] | null>(null)
   const [loadError, setLoadError] = useState(false)
-
-  // The parent's children (for the RSVP dialog) and the event being RSVP'd to.
-  const [kids, setKids] = useState<RsvpChild[] | null>(null)
-  const [kidsError, setKidsError] = useState(false)
-  const [rsvpEvent, setRsvpEvent] = useState<EventItem | null>(null)
-  // Which children are already booked, keyed by event id → set of child ids.
-  const [bookings, setBookings] = useState<Map<string, Set<string>>>(new Map())
 
   useEffect(() => {
     let alive = true
@@ -64,86 +49,25 @@ export default function EventCalendar() {
     return () => { alive = false }
   }, [])
 
-  // Load the parent's children + existing bookings once, so the RSVP dialog
-  // opens instantly and can show who's already going.
-  useEffect(() => {
-    if (!isParent) return
-    let alive = true
-    async function load() {
-      try {
-        const { data: { session } } = await createClient().auth.getSession()
-        if (!session) throw new Error('no session')
-        const auth = { Authorization: `Bearer ${session.access_token}` }
-        const [childRes, bookingRes] = await Promise.all([
-          fetch('/api/children', { headers: auth }),
-          fetch('/api/bookings', { headers: auth }),
-        ])
-        if (!childRes.ok) throw new Error('children request failed')
-        const childData = await childRes.json()
-        if (alive) setKids(childData.children ?? [])
-
-        // Bookings are best-effort — if they fail we just don't show "Going".
-        if (bookingRes.ok) {
-          const { bookings: rows } = await bookingRes.json()
-          const map = new Map<string, Set<string>>()
-          for (const b of rows ?? []) {
-            if (!map.has(b.eventId)) map.set(b.eventId, new Set())
-            map.get(b.eventId)!.add(b.childId)
-          }
-          if (alive) setBookings(map)
-        }
-      } catch {
-        if (alive) { setKids([]); setKidsError(true) }
-      }
-    }
-    load()
-    return () => { alive = false }
-  }, [isParent])
-
-  // Refetch events but merge ONLY spotsLeft into the current cards — the tag
-  // updates to the server truth without re-rendering images (no flicker).
-  async function refreshSpots() {
-    try {
-      const { data: { session } } = await createClient().auth.getSession()
-      if (!session) return
-      const res = await fetch('/api/events', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (!res.ok) return
-      const data = await res.json()
-      const fresh = new Map<string, number | null>()
-      for (const e of data.events ?? []) fresh.set(e.id, e.spotsLeft)
-      setEvents(prev =>
-        (prev ?? []).map(e => (fresh.has(e.id) ? { ...e, spotsLeft: fresh.get(e.id) ?? null } : e)),
-      )
-    } catch {
-      // Best-effort — the tag just stays as it was until the next load.
-    }
-  }
-
-  // Fold a just-completed RSVP into the booking map (for "Going") and refresh the
-  // spots-left tags from the server.
-  function handleBooked(eventId: string, childIds: string[]) {
-    setBookings(prev => {
-      const next = new Map(prev)
-      const set = new Set(next.get(eventId) ?? [])
-      childIds.forEach(id => set.add(id))
-      next.set(eventId, set)
-      return next
-    })
-    void refreshSpots()
-  }
-
   const loading = events === null
 
-  const [view, setView] = useState<View>('week')
+  // Seed from the retained singleton so returning from an event's details screen
+  // restores the view/period/day instead of snapping back to today.
+  const [view, setView] = useState<View>(retained.view)
   // One cursor drives the displayed period: its week in week view, its month in
   // month view. A single source means the grid and the (unfiltered) list can
   // never drift apart when you page around.
-  const [cursor, setCursor] = useState<Date>(today)
+  const [cursor, setCursor] = useState<Date>(() => retained.cursor ?? today)
   // A day filter layered on top. While set, it takes preference: paging moves
   // the grid but the list stays pinned to this day until it's cleared.
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [selectedDay, setSelectedDay] = useState<Date | null>(() => retained.selectedDay)
+
+  // Mirror the current view/period/day into the singleton so it's there on remount.
+  useEffect(() => {
+    retained.view = view
+    retained.cursor = cursor
+    retained.selectedDay = selectedDay
+  }, [view, cursor, selectedDay])
 
   // Days (UK-local) that have at least one upcoming event → dot indicator. Past
   // days never carry a dot — the API only ever returns events from today on.
@@ -321,24 +245,11 @@ export default function EventCalendar() {
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {listEvents.map(e => (
-              <EventCard key={e.id} event={e} onSelect={isParent ? () => setRsvpEvent(e) : undefined} />
+              <EventCard key={e.id} event={e} href={`/events/${e.id}`} />
             ))}
           </div>
         )}
       </section>
-
-      {rsvpEvent && (
-        <EventRsvpDialog
-          key={rsvpEvent.id}
-          event={rsvpEvent}
-          kids={kids}
-          bookedIds={bookings.get(rsvpEvent.id) ?? EMPTY_IDS}
-          loading={kids === null && !kidsError}
-          error={kidsError}
-          onBooked={childIds => handleBooked(rsvpEvent.id, childIds)}
-          onClose={() => setRsvpEvent(null)}
-        />
-      )}
     </div>
   )
 }

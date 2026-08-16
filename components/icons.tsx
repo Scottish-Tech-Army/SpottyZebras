@@ -164,6 +164,30 @@ export const UserIcon = (p: IconProps) => (
   </SvgIcon>
 )
 
+/** Triangle alert — warnings (e.g. the non-refundable notice) */
+export const TriangleAlertIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+    <path d="M12 9v4" />
+    <path d="M12 17h.01" />
+  </SvgIcon>
+)
+
+/** Phone — contact number */
+export const PhoneIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.06 6.06" />
+  </SvgIcon>
+)
+
+/** Mail — contact email */
+export const MailIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="m22 7-8.991 5.727a2 2 0 0 1-2.018 0L2 7" />
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+  </SvgIcon>
+)
+
 export const SmileIcon = (p: IconProps) => (
   <SvgIcon {...p}>
     <circle cx="12" cy="12" r="10" />

@@ -35,16 +35,12 @@ export default function DonatePage() {
   const { loggedIn } = useAppChrome()
 
   return (
-    <div className="flex-1 flex items-start justify-center py-10 px-4">
-      <div className="w-full max-w-lg">
-        {/* Title sits above the card, like the other screens. Anonymous donors get
-            a back button; from the app menu the nav replaces it. */}
-        <div className="mb-4 flex items-center gap-2">
-          {!loggedIn && <BackButton href="/" />}
-          <h1 className="text-2xl font-bold text-[var(--color-secondary)]">Donate</h1>
-        </div>
+    <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-10">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--color-secondary)]">Donate</h1>
+      </div>
 
-        <Card className="p-8">
+      <Card className="p-8">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <FormSection label="How often">
             <FrequencyToggle value={frequency} onChange={setFrequency} />
@@ -151,7 +147,6 @@ export default function DonatePage() {
           </Button>
           </form>
         </Card>
-      </div>
     </div>
   )
 }

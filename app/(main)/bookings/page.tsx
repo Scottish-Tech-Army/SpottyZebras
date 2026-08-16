@@ -6,6 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { XIcon, TicketIcon, ClockIcon, MapPinIcon } from '@/components/icons'
 import { createClient } from '@/lib/supabase'
 import { formatEventWhen, priceLabel } from '@/lib/events/format'
+import { Patrick_Hand } from 'next/font/google'
 
 interface BookedChild {
   bookingId: string
@@ -30,6 +31,8 @@ interface CancelTarget {
   childName: string
   eventTitle: string
 }
+
+const brandFont = Patrick_Hand({ weight: '400', subsets: ['latin'] })
 
 export default function BookingsPage() {
   const [events, setEvents] = useState<BookedEvent[] | null>(null)
@@ -97,7 +100,7 @@ export default function BookingsPage() {
     <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-10">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--color-secondary)]">My bookings</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">The upcoming events your children are going to. Paid bookings can’t be cancelled online.</p>
+        <p className={`${brandFont.className} text-md text-[var(--color-text-muted)]`}>The upcoming events your children are going to. Paid bookings can’t be cancelled online.</p>
       </div>
 
       {actionError && (
