@@ -1,5 +1,6 @@
 import { verifyReviewToken } from '@/lib/admin/reviewToken'
 import { createAdminClient } from '@/lib/supabase-admin'
+import { BRAND } from '@/lib/brand'
 
 export const runtime = 'nodejs'
 
@@ -45,7 +46,7 @@ function htmlResult(title: string, body: string): Response {
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${title} — Spotty Zebras</title></head>
+<title>${title} - ${BRAND.name}</title></head>
 <body style="margin:0;font-family:Arial,sans-serif;background:#F8F8F7;color:#1B2A3A">
   <div style="max-width:460px;margin:64px auto;padding:32px;background:#fff;border-radius:16px;border:1px solid #eee;text-align:center">
     <h1 style="font-size:24px;margin:0 0 12px">${title}</h1>
