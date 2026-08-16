@@ -4,6 +4,7 @@ import { Patrick_Hand } from 'next/font/google'
 import Carousel, { type CarouselSlide } from '@/components/landing/Carousel'
 import Facts from '@/components/landing/Facts'
 import LandingGate from '@/components/landing/LandingGate'
+import { BRAND } from '@/lib/brand'
 
 // Playful hand-drawn brand font (self-hosted by next/font).
 const brandFont = Patrick_Hand({ weight: '400', subsets: ['latin'] })
@@ -18,7 +19,12 @@ const SLIDES: CarouselSlide[] = [
 const FOOTER_LINKS = [
   { label: 'Privacy', href: '/privacy' },
   { label: 'Terms', href: '/terms' },
-  { label: 'Contact', href: '/contact' },
+]
+
+// Contact details rendered inline in the footer (no separate Contact page).
+const CONTACT_LINKS = [
+  { label: BRAND.email, href: `mailto:${BRAND.email}` },
+  { label: BRAND.phone, href: `tel:${BRAND.phone.replace(/\s+/g, '')}` },
 ]
 
 export default function Home() {
@@ -28,7 +34,7 @@ export default function Home() {
       {/* ── Header: logo + title (left, fixed across sizes), Donate (right) ──── */}
       <header className="border-b border-[var(--color-border)] bg-white">
         <div className="flex w-full items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
-          <Link href="/" aria-label="Spotty Zebras SCIO home" className="flex items-center gap-2 sm:gap-3">
+          <Link href="/" aria-label={`${BRAND.name} home`} className="flex items-center gap-2 sm:gap-3">
             <Image
               src="/logo.png"
               alt=""
@@ -38,14 +44,8 @@ export default function Home() {
               className="h-9 w-auto shrink-0 object-contain sm:h-10 lg:h-11"
             />
             <span className={`${brandFont.className} whitespace-nowrap text-lg text-[var(--color-primary)] sm:text-2xl lg:text-3xl`}>
-              Spotty Zebras SCIO
+              {BRAND.name}
             </span>
-          </Link>
-          <Link
-            href="/donate"
-            className="btn-primary shrink-0 rounded-[var(--radius-md)] px-4 py-2 text-sm font-semibold sm:px-5"
-          >
-            Donate
           </Link>
         </div>
       </header>
@@ -58,17 +58,25 @@ export default function Home() {
             {/* Blue tagline as the heading for the intro copy */}
             <div className="max-w-md">
               <h1 className={`${brandFont.className} text-center text-xl text-[var(--color-secondary)] sm:text-3xl lg:text-3xl`}>
-                Where being different is fun!
+                {BRAND.tagline}
               </h1>
               <p className={`${brandFont.className} mt-6 text-justify text-lg leading-snug text-[var(--color-text-secondary)]`}>
-                Spotty Zebras SCIO is a charity for kids with additional support needs and their families.
+                {BRAND.name} is a charity for kids with additional support needs and their families.
                 Originally founded in November 2009 we officially became a registered Scottish charity in 2025.
                 We run events and activities to support kids, their siblings, parents and carers in a
                 friendly and safe environment.
               </p>
+            {/* Donate is the highlighted primary CTA; Sign in sits below as a quieter
+                outline button of the exact same size and placement. */}
+            <Link
+              href="/donate"
+              className="btn-primary mx-auto mt-6 block w-[60%] max-w-xs rounded-[var(--radius-md)] py-2.5 text-center text-sm font-semibold"
+            >
+              Donate
+            </Link>
             <Link
               href="/login"
-              className="btn-primary mx-auto mt-6 block w-[60%] max-w-xs rounded-[var(--radius-md)] py-2.5 text-center text-sm font-semibold"
+              className="mx-auto mt-3 block w-[60%] max-w-xs rounded-[var(--radius-md)] border border-[var(--color-primary)] bg-white py-2.5 text-center text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-sand)]"
             >
               Sign in
             </Link>
@@ -92,7 +100,18 @@ export default function Home() {
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-[var(--color-border)] bg-white/70 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-3 px-4 py-4 text-sm text-[var(--color-text-muted)] sm:px-6 lg:flex-row lg:justify-between">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-2 px-4 py-4 text-sm text-[var(--color-text-muted)] sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+          {/* Contact us — email + phone inline, no separate Contact page */}
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span className="font-semibold text-[var(--color-text-secondary)]">Contact us:</span>
+            {CONTACT_LINKS.map((l, i) => (
+              <span key={l.href} className="flex items-center gap-2">
+                {i > 0 && <span aria-hidden className="text-[var(--color-border-input)]">·</span>}
+                <a href={l.href} className="transition hover:text-[var(--color-text)]">{l.label}</a>
+              </span>
+            ))}
+          </div>
+
           <nav className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             {FOOTER_LINKS.map((l, i) => (
               <span key={l.href} className="flex items-center gap-2">
@@ -100,8 +119,9 @@ export default function Home() {
                 <Link href={l.href} className="transition hover:text-[var(--color-text)]">{l.label}</Link>
               </span>
             ))}
+            <span aria-hidden className="text-[var(--color-border-input)]">·</span>
+            <span>Registered SCIO {BRAND.charityNumber}</span>
           </nav>
-          <span>Registered SCIO SC053921</span>
         </div>
       </footer>
     </div>

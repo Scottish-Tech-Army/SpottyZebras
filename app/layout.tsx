@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Image from "next/image";
+import { BRAND } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spotty Zebras",
-  description: "Multi-tenant event, booking, and donation platform",
+  title: BRAND.name,
+  description: BRAND.description,
 };
 
 export const viewport: Viewport = {

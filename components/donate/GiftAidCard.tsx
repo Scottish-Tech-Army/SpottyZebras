@@ -1,5 +1,7 @@
 'use client'
 
+import { BRAND } from '@/lib/brand'
+
 export default function GiftAidCard({
   checked,
   onChange,
@@ -28,7 +30,7 @@ export default function GiftAidCard({
             </p>
           )}
           <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
-            I want to Gift Aid my donation to Spotty Zebras SCIO Charity. I&apos;m a UK taxpayer and understand
+            I want to Gift Aid my donation to {BRAND.legalName}. I&apos;m a UK taxpayer and understand
             that if I pay less Income Tax and/or Capital Gains Tax than the amount of Gift Aid claimed on
             all my donations in that tax year, it is my responsibility to pay any difference.
           </p>
