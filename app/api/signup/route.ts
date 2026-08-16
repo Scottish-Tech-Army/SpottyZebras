@@ -154,7 +154,7 @@ function buildAdminEmailHtml(data: SignupData, userId: string, origin: string): 
   const reviewUrl = `${origin}/admin/review?token=${encodeURIComponent(signReviewToken(userId))}`
   const actionsBlock = `
     <div style="margin:8px 0;padding:20px;background:#F8F8F7;border-radius:8px;text-align:center">
-      <a href="${reviewUrl}" style="display:inline-block;padding:12px 40px;border-radius:8px;background:#3F9E55;color:#ffffff;font-weight:bold;text-decoration:none">Review</a>
+      <a href="${reviewUrl}" style="display:inline-block;padding:12px 40px;border-radius:8px;background:#2DA174;color:#ffffff;font-weight:bold;text-decoration:none">Review</a>
       <p style="margin:14px 0 0;font-size:12px;color:#6A7684">Use the Approve / Reject buttons on the next screen. Approving activates the family's account; rejecting permanently deletes their registration. This link expires in 14 days.</p>
     </div>`
 

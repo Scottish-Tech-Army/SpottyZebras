@@ -1,13 +1,22 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { Patrick_Hand } from 'next/font/google'
 
 // Playful hand-drawn brand font, self-hosted by next/font (no runtime request).
 const brandFont = Patrick_Hand({ weight: '400', subsets: ['latin'] })
 
-export default function Header({ children }: { children?: React.ReactNode }) {
+export default function Header({
+  children,
+  homeHref = '/',
+}: {
+  children?: React.ReactNode
+  /** Where the logo/title links to — the logged-in home (Events) when signed in,
+   *  the public landing screen otherwise. */
+  homeHref?: string
+}) {
   return (
     <header className="flex items-center justify-between px-4 sm:px-8 py-3 bg-white/60 backdrop-blur-md shadow-sm">
-      <div className="flex items-center gap-3">
+      <Link href={homeHref} aria-label="Spotty Zebras SCIO home" className="flex items-center gap-3">
         <Image
           src="/logo.png"
           alt="Spotty Zebras SCIO logo"
@@ -24,7 +33,7 @@ export default function Header({ children }: { children?: React.ReactNode }) {
             Where being different is fun!
           </span>
         </div>
-      </div>
+      </Link>
       {children}
     </header>
   )
