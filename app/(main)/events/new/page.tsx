@@ -14,7 +14,6 @@ import { createClient } from '@/lib/supabase'
 import {
   type EventFormValues, type EventFormErrors,
   REQUIRED_FIELDS, sanitizeEventField, validateEventForm, minEventDate, maxEventDate,
-  TITLE_MAX, DESCRIPTION_MAX,
 } from '@/lib/events/newEventForm'
 
 const EMPTY: EventFormValues = {
@@ -146,8 +145,6 @@ export default function NewEventPage() {
             onBlur={() => blur('title')}
             error={errors.title}
             placeholder="e.g. Messy art afternoon"
-            maxLength={TITLE_MAX}
-            hint={`Maximum ${TITLE_MAX} characters`}
           />
           <TextArea
             label={`Description${req('description')}`}
@@ -156,8 +153,7 @@ export default function NewEventPage() {
             onBlur={() => blur('description')}
             error={errors.description}
             placeholder="What happens at this event?"
-            maxLength={DESCRIPTION_MAX}
-            hint={`Maximum ${DESCRIPTION_MAX} characters`}
+            hint="Add as much detail as you like — it all shows on the event page."
           />
         </FormSection>
 

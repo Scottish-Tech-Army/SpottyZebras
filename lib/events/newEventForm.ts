@@ -21,11 +21,6 @@ export const REQUIRED_FIELDS = ['title', 'description', 'location', 'date', 'sta
 
 export const MAX_AGE = 18
 
-// Kept short so the whole title/description is always visible on an event card
-// (phone and web) — there's no event-details screen to fall back to.
-export const TITLE_MAX = 50
-export const DESCRIPTION_MAX = 160
-
 const digits = (v: string) => v.replace(/\D/g, '')
 
 /** Age 0–18, digits only (nothing above 18 can be entered). */

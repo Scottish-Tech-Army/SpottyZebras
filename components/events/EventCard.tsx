@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ClockIcon, MapPinIcon, ImageIcon } from '@/components/icons'
 import { ageLabel, formatEventWhen, priceLabel, spotsLabel } from '@/lib/events/format'
 import type { EventItem } from '@/lib/events/types'
@@ -5,27 +6,20 @@ import type { EventItem } from '@/lib/events/types'
 /**
  * One event, responsive: on phones the image sits on the left of the row; from
  * `lg` up the card stacks with the image on top. Same image either way — only
- * its placement changes with screen size. When `onSelect` is given the whole
- * card acts as a button (opens the RSVP dialog for parents).
+ * its placement changes with screen size. When `href` is given the whole card is
+ * a link to the event-details screen; the description is clamped since the full
+ * text lives there.
  */
-export function EventCard({ event, onSelect }: { event: EventItem; onSelect?: () => void }) {
-  const clickable = !!onSelect
-  return (
-    <article
-      onClick={onSelect}
-      onKeyDown={
-        clickable
-          ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect!() } }
-          : undefined
-      }
-      role={clickable ? 'button' : undefined}
-      tabIndex={clickable ? 0 : undefined}
-      className={`flex overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] lg:flex-col ${
-        clickable
-          ? 'cursor-pointer transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]'
-          : ''
-      }`}
-    >
+export function EventCard({ event, href }: { event: EventItem; href?: string }) {
+  const clickable = !!href
+  const cardClass = `flex overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] lg:flex-col ${
+    clickable
+      ? 'cursor-pointer transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]'
+      : ''
+  }`
+
+  const inner = (
+    <>
       {/* Image — left on phones, top on large screens */}
       <div className="relative w-2/5 shrink-0 self-stretch bg-[var(--color-sand)] lg:w-full lg:self-auto lg:aspect-[16/9]">
         {event.imageUrl ? (
@@ -41,8 +35,8 @@ export function EventCard({ event, onSelect }: { event: EventItem; onSelect?: ()
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
         <div className="flex flex-col gap-1">
-          <h3 className="font-bold leading-snug text-[var(--color-secondary)]">{event.title}</h3>
-          <p className="text-sm text-[var(--color-text-muted)]">{event.description}</p>
+          <h3 className="line-clamp-2 font-bold leading-snug text-[var(--color-secondary)]">{event.title}</h3>
+          <p className="line-clamp-3 text-sm text-[var(--color-text-muted)]">{event.description}</p>
         </div>
 
         <div className="flex flex-col gap-1.5 text-sm text-[var(--color-text-secondary)]">
@@ -64,7 +58,13 @@ export function EventCard({ event, onSelect }: { event: EventItem; onSelect?: ()
           {event.spotsLeft != null && <SpotsTag spotsLeft={event.spotsLeft} />}
         </div>
       </div>
-    </article>
+    </>
+  )
+
+  return href ? (
+    <Link href={href} className={cardClass}>{inner}</Link>
+  ) : (
+    <article className={cardClass}>{inner}</article>
   )
 }
 

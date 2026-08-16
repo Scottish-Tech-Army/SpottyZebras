@@ -21,6 +21,11 @@ export const BRAND = {
   phone: '+44 7827 223415',
   /** Correspondence address */
   address: '41 Peggishill road, Ayrshire, KA73RD',
+  /** Named people to reach the charity on — shown on the logged-in Help page. */
+  contacts: {
+    primary: { name: 'Ciara McDonald', phone: '+44 07827 223415' },
+    secondary: { name: 'Lynsi Alexander', phone: '+44 07792 238428' },
+  },
   /** One-line description for page metadata / previews. */
   description:
     'A Scottish charity (SCIO) supporting kids with additional support needs and their families through events and activities.',

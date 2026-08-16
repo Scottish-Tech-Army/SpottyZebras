@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
-import BackButton from '@/components/BackButton'
 import { Card } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { createClient } from '@/lib/supabase'
+import { resetCalendarState } from '@/lib/events/calendarState'
 
 // ─── Shapes the screen renders — the /api/account response. ──
 interface CarerInfo { name: string; email: string; phone: string; address: string }
@@ -57,6 +57,8 @@ export default function AccountPage() {
   async function handleSignOut() {
     setSigningOut(true)
     await createClient().auth.signOut()
+    // Clear any tab-session client state so the next user starts fresh.
+    resetCalendarState()
     router.replace('/login')
   }
 
@@ -65,14 +67,11 @@ export default function AccountPage() {
       {/* Standard Spotty Zebras header, same as other screens (no account avatar here). */}
       <Header />
 
-      <div className="flex-1 flex justify-center px-4 py-6">
-        <div className="w-full max-w-lg lg:max-w-3xl flex flex-col gap-5">
-          {/* In-screen title: back + Account (left), Sign out (right) */}
+      <div className="flex-1">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4 sm:p-6 lg:p-10">
+          {/* In-screen title: Account (left), Sign out (right) */}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <BackButton />
-              <h1 className="text-2xl font-bold text-[var(--color-text)]">Account</h1>
-            </div>
+            <h1 className="text-2xl font-bold text-[var(--color-secondary)]">Account</h1>
             <button
               type="button"
               onClick={() => setConfirmOpen(true)}
@@ -161,7 +160,7 @@ function ParentView({ data }: { data: ParentAccount }) {
             const lastAndOdd = i === data.children.length - 1 && data.children.length % 2 === 1
             return (
               <SubSection key={i} title={`${child.name} · Age ${child.age}`} className={lastAndOdd ? CENTER_ODD : ''}>
-                <Row label="Special needs" value={child.specialNeeds} />
+                <Row label="Additional support needs" value={child.specialNeeds} />
                 <Row label="Allergies" value={child.allergies} />
                 <Row label="Photo consent" value={child.photoConsent ? 'Yes' : 'No'} />
               </SubSection>
