@@ -16,7 +16,7 @@ export default function Header({
   homeHref?: string
 }) {
   return (
-    <header className="flex items-center justify-between px-4 sm:px-8 py-3 bg-white/60 backdrop-blur-md shadow-sm">
+    <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-8 py-3 bg-white/80 backdrop-blur-md shadow-sm">
       <Link href={homeHref} aria-label={`${BRAND.name} home`} className="flex items-center gap-3">
         <Image
           src="/logo.png"
