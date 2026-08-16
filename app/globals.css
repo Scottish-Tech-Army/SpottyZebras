@@ -10,8 +10,8 @@
      ✎ = derived / best-guess (confirm the four accents + sand + hovers)     */
 
   /* Primary — Zebra green (confirmations, RSVPs, brand-active, zebra outline) */
-  --color-primary:          #3F9E55;   /* ✅ */
-  --color-primary-hover:    #348449;   /* ✎ darker green for hover */
+  --color-primary:          #2DA174;   /* ✅ sampled from the logo artwork */
+  --color-primary-hover:    #268963;   /* ✎ darker green for hover */
 
   /* Secondary — Sky blue (tagline display copy, links, "going" badges) */
   --color-secondary:        #2E7DC9;   /* ✅ */
@@ -64,8 +64,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   /* Expose design tokens as first-class Tailwind utilities (bg-primary, etc.) */
-  --color-primary:         #3F9E55;
-  --color-primary-hover:   #348449;
+  --color-primary:         #2DA174;
+  --color-primary-hover:   #268963;
   --color-secondary:       #2E7DC9;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

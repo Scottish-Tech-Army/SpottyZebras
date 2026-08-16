@@ -102,7 +102,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <AppChromeProvider value={chrome}>
         <div className="min-h-screen flex flex-col">
-          <Header />
+          <Header homeHref="/" />
           {children}
         </div>
       </AppChromeProvider>
@@ -114,7 +114,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AppChromeProvider value={chrome}>
       <div className="min-h-screen flex flex-col">
-        <Header>
+        <Header homeHref="/events">
           <AccountButton />
         </Header>
 

@@ -24,13 +24,13 @@ export default function GiftAidCard({
           </p>
           {checked && bonus > 0 && (
             <p className="text-xs font-medium text-[var(--color-gift-aid-accent)] mt-1">
-              We can claim an extra £{bonus.toFixed(2)} from the government — you pay nothing more.
+              We can claim an extra £{bonus.toFixed(2)} from the government - you pay nothing more.
             </p>
           )}
           <p className="text-xs text-[var(--color-text-muted)] mt-1 leading-relaxed">
-            I&apos;m a UK taxpayer and understand that if I pay less Income Tax and/or Capital Gains Tax
-            than the amount of Gift Aid claimed on all my donations in that tax year, it is my
-            responsibility to pay any difference.
+            I want to Gift Aid my donation to Spotty Zebras SCIO Charity. I&apos;m a UK taxpayer and understand
+            that if I pay less Income Tax and/or Capital Gains Tax than the amount of Gift Aid claimed on
+            all my donations in that tax year, it is my responsibility to pay any difference.
           </p>
         </div>
       </label>

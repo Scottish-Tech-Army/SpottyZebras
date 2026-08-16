@@ -50,7 +50,7 @@ function htmlResult(title: string, body: string): Response {
   <div style="max-width:460px;margin:64px auto;padding:32px;background:#fff;border-radius:16px;border:1px solid #eee;text-align:center">
     <h1 style="font-size:24px;margin:0 0 12px">${title}</h1>
     <p style="color:#6A7684;margin:0 0 24px">${body}</p>
-    <a href="/" style="display:inline-block;padding:12px 28px;border-radius:8px;background:#3F9E55;color:#fff;font-weight:bold;text-decoration:none">Back to home</a>
+    <a href="/" style="display:inline-block;padding:12px 28px;border-radius:8px;background:#2DA174;color:#fff;font-weight:bold;text-decoration:none">Back to home</a>
   </div>
 </body></html>`
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
