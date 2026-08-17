@@ -173,18 +173,18 @@ export const TriangleAlertIcon = (p: IconProps) => (
   </SvgIcon>
 )
 
-/** Phone — contact number */
-export const PhoneIcon = (p: IconProps) => (
-  <SvgIcon {...p}>
-    <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.06 6.06" />
-  </SvgIcon>
-)
-
 /** Mail — contact email */
 export const MailIcon = (p: IconProps) => (
   <SvgIcon {...p}>
     <path d="m22 7-8.991 5.727a2 2 0 0 1-2.018 0L2 7" />
     <rect x="2" y="4" width="20" height="16" rx="2" />
+  </SvgIcon>
+)
+
+/** Facebook — Messenger / page link */
+export const FacebookIcon = (p: IconProps) => (
+  <SvgIcon {...p}>
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
   </SvgIcon>
 )
 
