@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import PasswordVisibilityToggle from '@/components/ui/PasswordVisibilityToggle'
@@ -11,7 +11,6 @@ import { passwordChecks, isPasswordValid } from '@/lib/signup/validation'
 type Status = 'verifying' | 'ready' | 'invalid' | 'done'
 
 function ResetPasswordInner() {
-  const router = useRouter()
   const params = useSearchParams()
   const tokenHash = params.get('token_hash')
   const type = params.get('type')
@@ -45,6 +44,19 @@ function ResetPasswordInner() {
       const supabase = createClient()
       const { error: updErr } = await supabase.auth.updateUser({ password })
       if (updErr) { setError(updErr.message ?? 'Could not update your password. Please try again.'); return }
+
+      // Best-effort "password changed" security notification — while we still have
+      // the session token, and before we sign out. Never block the success on it.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          await fetch('/api/password-changed', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+        }
+      } catch { /* notification is best-effort */ }
+
       // Don't leave the recovery session usable — force a fresh sign-in.
       await supabase.auth.signOut()
       setStatus('done')
