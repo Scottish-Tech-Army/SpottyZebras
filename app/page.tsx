@@ -22,9 +22,10 @@ const FOOTER_LINKS = [
 ]
 
 // Contact details rendered inline in the footer (no separate Contact page).
+// Email always; Facebook Messenger only once a link is set in BRAND.
 const CONTACT_LINKS = [
   { label: BRAND.email, href: `mailto:${BRAND.email}` },
-  { label: BRAND.phone, href: `tel:${BRAND.phone.replace(/\s+/g, '')}` },
+  ...(BRAND.facebook ? [{ label: 'Facebook', href: BRAND.facebook }] : []),
 ]
 
 export default function Home() {
@@ -101,15 +102,24 @@ export default function Home() {
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-[var(--color-border)] bg-white/70 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-2 px-4 py-4 text-sm text-[var(--color-text-muted)] sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-          {/* Contact us — email + phone inline, no separate Contact page */}
+          {/* Contact us — email (+ Facebook once set) inline, no separate Contact page */}
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             <span className="font-semibold text-[var(--color-text-secondary)]">Contact us:</span>
-            {CONTACT_LINKS.map((l, i) => (
-              <span key={l.href} className="flex items-center gap-2">
-                {i > 0 && <span aria-hidden className="text-[var(--color-border-input)]">·</span>}
-                <a href={l.href} className="transition hover:text-[var(--color-text)]">{l.label}</a>
-              </span>
-            ))}
+            {CONTACT_LINKS.map((l, i) => {
+              const external = l.href.startsWith('http')
+              return (
+                <span key={l.href} className="flex items-center gap-2">
+                  {i > 0 && <span aria-hidden className="text-[var(--color-border-input)]">·</span>}
+                  <a
+                    href={l.href}
+                    className="transition hover:text-[var(--color-text)]"
+                    {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                  >
+                    {l.label}
+                  </a>
+                </span>
+              )
+            })}
           </div>
 
           <nav className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

@@ -1,8 +1,6 @@
 import type { ComponentType } from 'react'
 import { BRAND } from '@/lib/brand'
-import { PhoneIcon, MailIcon, MapPinIcon } from '@/components/icons'
-
-const tel = (phone: string) => `tel:${phone.replace(/\s+/g, '')}`
+import { MailIcon, FacebookIcon } from '@/components/icons'
 
 /** A single labelled contact row: icon, a small label, and a value (optionally a link). */
 function ContactRow({
@@ -24,11 +22,11 @@ function ContactRow({
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{label}</p>
         {href ? (
-          <a href={href} className="font-bold text-[var(--color-secondary)] text-sm">
+          <a href={href} className="text-sm font-bold text-[var(--color-secondary)]">
             {value}
           </a>
         ) : (
-          <p className="font-bold text-[var(--color-secondary)] text-sm">{value}</p>
+          <p className="text-sm font-bold text-[var(--color-secondary)]">{value}</p>
         )}
       </div>
     </div>
@@ -36,27 +34,23 @@ function ContactRow({
 }
 
 export default function HelpPage() {
-  const { primary, secondary } = BRAND.contacts
-
   return (
     <div className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-10">
       <h1 className="text-2xl font-bold text-[var(--color-secondary)]">Help</h1>
+      <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        Have a question or need a hand? Reach the {BRAND.name} team using the details below.
+      </p>
 
       <div className="mt-6 divide-y divide-[var(--color-border)] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 sm:p-6">
-        <ContactRow
-          Icon={PhoneIcon}
-          label={`Primary contact - ${primary.name}`}
-          value={primary.phone}
-          href={tel(primary.phone)}
-        />
-        <ContactRow
-          Icon={PhoneIcon}
-          label={`Secondary contact - ${secondary.name}`}
-          value={secondary.phone}
-          href={tel(secondary.phone)}
-        />
         <ContactRow Icon={MailIcon} label="Email" value={BRAND.email} href={`mailto:${BRAND.email}`} />
-        <ContactRow Icon={MapPinIcon} label="Address" value={BRAND.address} />
+        {BRAND.facebook && (
+          <ContactRow
+            Icon={FacebookIcon}
+            label="Facebook Messenger"
+            value="Message us on Facebook"
+            href={BRAND.facebook}
+          />
+        )}
       </div>
     </div>
   )
