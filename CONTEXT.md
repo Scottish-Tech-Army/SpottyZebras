@@ -16,7 +16,7 @@
 ## Auth Flow
 - Supabase Auth handles email + password (auth.users internal)
 - On signup: create auth record → app_user (is_active=FALSE) → parent_profile → children
-- Login checks: auth verifies password → app checks role + is_active in app_user
+- Login checks: auth verifies password → app checks role + is_active in app_user.
 - Parents can't use the platform until admin sets is_active=TRUE
 
 ## Key Decisions
